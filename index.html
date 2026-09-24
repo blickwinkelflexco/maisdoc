@@ -243,7 +243,7 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
     <div class="brand">
       <small>BLICKWINKEL</small>
       <h1>Mais<span>Doc</span></h1>
-      <p class="sub">für Mitglieder der Trocknungsgenossenschaft Reding eG</p>
+      <p class="sub">Maisertrag vom Wiegeschein bis zur Trockenmasse je Hektar</p>
     </div>
     <button type="button" class="acct" id="btnKonto" hidden>
       <span class="acct-name" id="acctName">Anmelden</span>
@@ -354,7 +354,8 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
     <hr class="sep">
     <h3>Einstellungen</h3>
     <div class="grid">
-      <label class="f">Kundennummer bei der Genossenschaft<input type="text" id="setKunde" inputmode="numeric" placeholder="10410"></label>
+      <label class="f">Trocknung <span class="u">wohin du lieferst</span><input type="text" id="setTrocknung" autocomplete="organization" placeholder="Name der Trocknungsanlage"></label>
+      <label class="f">Kundennummer bei der Trocknung<input type="text" id="setKunde" inputmode="numeric" placeholder="10410"></label>
       <label class="f"><span>Bezugsfeuchte Handelsware <span class="u">%</span></span><input type="text" id="setStd" inputmode="decimal" placeholder="14"></label>
       <label class="f full" style="flex-direction:row;align-items:center;gap:10px;font-size:13px">
         <input type="checkbox" id="setAbzug" style="width:22px;min-height:22px;height:22px">
@@ -372,7 +373,7 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
     </div>
 
     <footer class="legal">
-      <p>MaisDoc ist ein Angebot der BLICKWINKEL FlexCo und kein Angebot der Trocknungsgenossenschaft Reding eG. Alle Werte sind eigene Berechnungen aus deinen Eingaben, ohne Gewähr. Maßgeblich sind die Abrechnungen der Genossenschaft.</p>
+      <p>MaisDoc ist ein kostenloses Angebot der BLICKWINKEL FlexCo, unabhängig von den Trocknungsanlagen. Alle Werte sind eigene Berechnungen aus deinen Eingaben, ohne Gewähr. Maßgeblich sind die Abrechnungen deiner Trocknung.</p>
       <p><a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></p>
     </footer>
   </section>
@@ -395,7 +396,7 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
 <script>
 "use strict";
 /* ------------------------------------------------------------------
-   Maisertrag Reding – Prototyp
+   MaisDoc
    Daten: IndexedDB im Browser (kein Login). Datenmodell mit schema-Version
    und kundeNr, damit ein späterer Login/Sync die Datensätze übernehmen kann.
 ------------------------------------------------------------------- */
@@ -722,7 +723,7 @@ async function saveForm(ev) {
     erstellt: prev ? prev.erstellt : new Date().toISOString(),
     geaendert: new Date().toISOString(),
     kundeNr: state.settings.kundeNr || null,
-    genossenschaft: "Trocknungsgenossenschaft Reding eG",
+    trocknung: state.settings.trocknung || null,
     frucht: "Körnermais",
     jahr: +r.datum.slice(0, 4),
     ...r,
@@ -936,6 +937,7 @@ async function importJson(file) {
 async function saveSettings() {
   const s = state.settings;
   s.kundeNr = $("setKunde").value.trim();
+  s.trocknung = $("setTrocknung").value.trim();
   const std = num($("setStd").value); s.stdFeuchte = std != null && std >= 0 && std < 40 ? std : 14;
   s.abzugAnwenden = $("setAbzug").checked;
   s.geaendert = new Date().toISOString(); s.dirty = true;
@@ -945,6 +947,7 @@ async function saveSettings() {
 }
 function applySettingsToForm() {
   $("setKunde").value = state.settings.kundeNr || "";
+  $("setTrocknung").value = state.settings.trocknung || "";
   $("setStd").value = String(state.settings.stdFeuchte ?? 14).replace(".", ",");
   $("setAbzug").checked = !!state.settings.abzugAnwenden;
 }
@@ -1298,7 +1301,7 @@ $("btnAddField").addEventListener("click", async () => {
   const f = await addField($("addFieldName").value, num($("addFieldArea").value));
   if (f) { $("addFieldName").value = ""; $("addFieldArea").value = ""; renderAll(); toast(`Feld „${f.name}“ angelegt`); }
 });
-["setKunde", "setStd", "setAbzug"].forEach((id) => $(id).addEventListener("change", saveSettings));
+["setTrocknung", "setKunde", "setStd", "setAbzug"].forEach((id) => $(id).addEventListener("change", saveSettings));
 $("btnCsv").addEventListener("click", exportCsv);
 $("btnJson").addEventListener("click", exportJson);
 $("importFile").addEventListener("change", (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) importJson(f); });

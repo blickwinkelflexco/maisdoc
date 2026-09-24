@@ -1,0 +1,3 @@
+# Testbetrieb: nicht in Suchmaschinen aufnehmen
+User-agent: *
+Disallow: /

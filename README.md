@@ -1,10 +1,17 @@
 # MaisDoc
 
-Web-App für Mitglieder der **Trocknungsgenossenschaft Reding eG** (Neuhaus/Inn):
-Wiegeschein bei der Maisablieferung fotografieren, Hektar der Fuhre und Feld
+Web-App für Landwirtinnen und Landwirte, die Mais an eine Trocknung liefern:
+Wiegeschein bei der Ablieferung fotografieren, Hektar der Fuhre und Feld
 eintragen, Trockenmasseertrag je Hektar sehen, Fuhren über die Jahre sammeln.
 
-Eine Anwendung der BLICKWINKEL FlexCo. Online: https://maisdoc.vercel.app
+Eigene Anwendung der BLICKWINKEL FlexCo, kostenlos für die Nutzer, unabhängig von den
+Trocknungsanlagen. Online: https://maisdoc.vercel.app (später https://maisdoc.blickwinkel.pro).
+
+**Testbetrieb:** Suchmaschinen sind ausgesperrt (`robots.txt`, `X-Robots-Tag` in `vercel.json`).
+Vor dem offiziellen Start beides entfernen.
+
+Erste unterstützte Trocknung: Wiegescheine der Trocknung Reding (Format des Beispiels
+100120, Texterkennung in `parseSlip`). Weitere Trocknungen folgen als eigene Leseregeln.
 
 ## Aufbau
 
@@ -87,7 +94,7 @@ Bei Änderungen an `index.html` die Cache-Version in `sw.js` hochzählen.
 ```jsonc
 // Fuhre (Gerät: Store "lieferungen", Server: Tabelle lieferungen.data)
 { "schema":1, "id":"uuid", "erstellt":"ISO", "geaendert":"ISO", "geloescht":null,
-  "kundeNr":"10410", "genossenschaft":"Trocknungsgenossenschaft Reding eG", "frucht":"Körnermais",
+  "kundeNr":"10410", "trocknung":"…", "frucht":"Körnermais",
   "jahr":2026, "datum":"2026-09-24", "waNr":"100120", "kennzeichen":"RI 737 GB",
   "w1":43820, "w2":15840, "netto":27980, "feuchte":24.7, "abzug":0.6,
   "feldId":"uuid", "ha":1.8, "sorte":"", "notiz":"", "hatFoto":true }
@@ -95,7 +102,7 @@ Bei Änderungen an `index.html` die Cache-Version in `sw.js` hochzählen.
 // Feld
 { "id":"uuid", "name":"Pirath Süd", "flaeche":4.2, "angelegt":"ISO", "geaendert":"ISO" }
 // Einstellungen (Server: users.settings)
-{ "kundeNr":"10410", "stdFeuchte":14, "abzugAnwenden":true, "geaendert":"ISO" }
+{ "trocknung":"…", "kundeNr":"10410", "stdFeuchte":14, "abzugAnwenden":true, "geaendert":"ISO" }
 ```
 
 Abgeleitete Werte (TM, t/ha) werden nie gespeichert, immer gerechnet.
@@ -104,6 +111,6 @@ Abgeleitete Werte (TM, t/ha) werden nie gespeichert, immer gerechnet.
 
 1. Eigene Domain `maisdoc.blickwinkel.pro` (Vercel → Domains, CNAME beim DNS von blickwinkel.pro).
 2. Passwort-Rücksetzen per E-Mail-Link (braucht einen Mail-Dienst, z. B. Resend).
-3. Genossenschaft: Abgleich mit den Wiegedaten der Reding eG je Kundennummer; anonymer
-   Vergleich „mein Ertrag vs. Durchschnitt der Mitglieder“ nur mit Zustimmung.
+3. Weitere Trocknungen anschließen: je Trocknung eine Leseregel für ihren Wiegeschein; Auswahl der
+   Trocknung je Fuhre. Später anonymer Vergleich „mein Ertrag vs. Durchschnitt“ nur mit Zustimmung.
 4. Feldgrenzen/Karte, Sorte und Aussaat je Feld, Ertrag je Sorte.
