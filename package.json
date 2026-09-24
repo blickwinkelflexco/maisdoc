@@ -1,0 +1,14 @@
+{
+  "name": "maisdoc",
+  "private": true,
+  "type": "module",
+  "description": "MaisDoc – Wiegescheine der Trocknungsgenossenschaft Reding erfassen, Trockenmasseertrag je Hektar",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "node scripts/dev-server.mjs",
+    "test": "node scripts/api-test.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.23.0"
+  }
+}

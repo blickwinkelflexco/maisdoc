@@ -1,5 +1,5 @@
 // Offline-Cache: App-Hülle zuerst aus dem Netz, bei Funkloch an der Waage aus dem Cache.
-const CACHE = "maisertrag-v3";
+const CACHE = "maisdoc-v4";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => {
@@ -12,6 +12,7 @@ self.addEventListener("fetch", (e) => {
   const sameOrigin = url.origin === self.location.origin;
   const font = /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname);
   if (!sameOrigin && !font) return; // Texterkennung u. a. nicht cachen
+  if (sameOrigin && url.pathname.startsWith("/api/")) return; // Konto-Daten nie cachen
   e.respondWith(
     fetch(req).then((res) => {
       if (res.ok || res.type === "opaque") { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }

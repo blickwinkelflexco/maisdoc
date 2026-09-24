@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1206">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b1206'/%3E%3Cpath d='M9 24c3-9 8-14 14-16-1 7-6 13-14 16z' fill='%236ab43e'/%3E%3C/svg%3E">
-<title>Maisertrag Reding</title>
+<title>MaisDoc</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -65,7 +65,20 @@ header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:1
 .brand h1{margin:0;font:700 26px/1.05 var(--f-head);letter-spacing:.01em;text-wrap:balance}
 .brand h1 span{color:var(--mais-ink)}
 .brand .sub{margin:2px 0 0;font:400 13px/1.3 var(--f-ui);color:var(--ink-soft)}
-.kunde{font:500 12px/1.2 var(--f-mono);color:var(--ink-soft);text-align:right}
+.acct{flex-direction:column;align-items:flex-end;gap:4px;min-height:44px;padding:7px 10px;max-width:52%;text-align:right}
+.acct-name{font:600 14px/1.1 var(--f-head);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-state{display:flex;align-items:center;gap:6px;font:400 11px/1.1 var(--f-ui);color:var(--muted);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;flex:none}
+.dot.ok{background:var(--good)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
+.dot.busy{background:var(--mais);animation:pulse 1s infinite alternate}
+@keyframes pulse{from{opacity:.35}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.dot.busy{animation:none}}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{border:0;border-radius:0;min-height:40px;background:transparent;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.err{color:var(--bad);font-size:14px}
+details.more summary{cursor:pointer;font:600 14px/1.2 var(--f-head);padding-block:8px}
+details.more[open] summary{margin-bottom:8px}
 h2{font:600 20px/1.15 var(--f-head);margin:0;letter-spacing:.01em}
 h3{font:600 16px/1.25 var(--f-head);margin:0;letter-spacing:.02em}
 .eyebrow{font:500 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
@@ -192,10 +205,13 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
   <header class="top">
     <div class="brand">
       <small>BLICKWINKEL</small>
-      <h1>Mais<span>ertrag</span></h1>
+      <h1>Mais<span>Doc</span></h1>
       <p class="sub">für Mitglieder der Trocknungsgenossenschaft Reding eG</p>
     </div>
-    <div class="kunde" id="kundeLabel"></div>
+    <button type="button" class="acct" id="btnKonto" hidden>
+      <span class="acct-name" id="acctName">Anmelden</span>
+      <span class="acct-state" id="acctState"><i class="dot" id="acctDot"></i><span id="acctText">nur auf diesem Gerät</span></span>
+    </button>
   </header>
 
   <div class="banner" id="storageBanner" hidden>Dieser Browser speichert keine Daten dauerhaft (privates Fenster oder Speicher gesperrt). Erfasste Fuhren gehen beim Schließen verloren. Bitte vorher unter „Felder“ sichern.</div>
@@ -314,7 +330,7 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
 
     <hr class="sep">
     <h3>Daten sichern</h3>
-    <p class="note">Die Daten liegen nur auf diesem Gerät. Die Sicherung (JSON, mit Fotos) lässt sich auf einem anderen Gerät wieder einlesen. Die Tabelle (CSV) öffnet Excel.</p>
+    <p class="note" id="backupNote">Ohne Konto liegen die Daten nur auf diesem Gerät. Die Sicherung (JSON, mit Fotos) lässt sich auf einem anderen Gerät wieder einlesen. Die Tabelle (CSV) öffnet Excel.</p>
     <div class="row">
       <button type="button" id="btnCsv">Tabelle (CSV)</button>
       <button type="button" id="btnJson">Sicherung (JSON)</button>
@@ -416,6 +432,8 @@ const state = {
   editId: null,
   foto: null,          // Blob des aktuellen Formulars
   fotoUrl: null,
+  fotoChanged: false,  // Foto im Formular neu gewählt oder entfernt
+  fotoRemote: false,   // Fuhre hat ein Foto im Konto, das hier noch nicht geladen ist
   nettoManual: false,
 };
 
@@ -482,8 +500,10 @@ function fillForm(r) {
   state.nettoManual = r.netto != null && !(r.w1 != null && r.w2 != null && r.w1 - r.w2 === r.netto);
   updateResult();
 }
-function setFoto(blob) {
+function setFoto(blob, changed = false) {
   if (state.fotoUrl) URL.revokeObjectURL(state.fotoUrl);
+  state.fotoChanged = changed;
+  if (changed) state.fotoRemote = false;
   state.foto = blob || null;
   state.fotoUrl = blob ? URL.createObjectURL(blob) : null;
   $("thumb").innerHTML = blob ? `<img alt="Foto des Wiegescheins" src="${state.fotoUrl}">` : "kein Foto";
@@ -493,6 +513,7 @@ function setFoto(blob) {
 }
 function resetForm(example) {
   state.editId = null; $("editFlag").hidden = true; $("btnSave").textContent = "Fuhre speichern";
+  state.fotoRemote = false;
   setFoto(null);
   const lastFeld = safeLS("get", "letztesFeld") || "";
   if (example) {
@@ -546,8 +567,10 @@ async function addField(name, flaeche) {
   name = (name || "").trim();
   if (!name) { toast("Bitte einen Feldnamen eingeben."); return null; }
   if (state.felder.some((f) => f.name.toLowerCase() === name.toLowerCase())) { toast(`„${name}“ gibt es schon.`); return null; }
-  const f = { id: uid(), name, flaeche: flaeche ?? null, angelegt: new Date().toISOString() };
+  const now = new Date().toISOString();
+  const f = { id: uid(), name, flaeche: flaeche ?? null, angelegt: now, geaendert: now, dirty: true };
   await Store.put("felder", f); state.felder.push(f);
+  scheduleSync();
   return f;
 }
 
@@ -648,6 +671,9 @@ async function saveForm(ev) {
     jahr: +r.datum.slice(0, 4),
     ...r,
     foto: state.foto || null,
+    hatFoto: !!state.foto || (!!prev && !!state.fotoRemote && !state.fotoChanged),
+    fotoDirty: state.fotoChanged || !!(prev && prev.fotoDirty),
+    dirty: true,
   };
   try { await Store.put("lieferungen", rec); }
   catch (e) { toast("Speichern fehlgeschlagen. Ist der Speicher des Browsers voll?"); return; }
@@ -656,15 +682,20 @@ async function saveForm(ev) {
   if (rec.feldId) safeLS("set", "letztesFeld", rec.feldId);
   if (rec.kennzeichen) safeLS("set", "letztesKennzeichen", rec.kennzeichen);
   state.year = rec.jahr;
+  scheduleSync();
   toast(prev ? "Fuhre geändert" : (c.tmHa != null ? `Gespeichert: ${fmt(c.tmHa / 1000, 2)} t TM/ha` : "Gespeichert (ohne Hektar)"));
   resetForm(false);
   renderAll();
   switchTab("verlauf");
 }
 async function deleteRec(id) {
-  await Store.del("lieferungen", id);
+  const r = state.lieferungen.find((x) => x.id === id);
+  const now = new Date().toISOString();
+  // Grabstein statt Löschen, damit die Löschung auch auf anderen Geräten ankommt
+  if (r) await Store.put("lieferungen", { id, schema: r.schema, erstellt: r.erstellt, jahr: r.jahr, datum: r.datum, geaendert: now, geloescht: now, foto: null, dirty: true });
   state.lieferungen = state.lieferungen.filter((x) => x.id !== id);
   $("dlg").close(); renderAll(); toast("Fuhre gelöscht");
+  scheduleSync();
 }
 
 /* ---------------- Verlauf ---------------- */
@@ -701,7 +732,7 @@ function renderVerlauf() {
     return `<li><button type="button" class="tl" data-id="${esc(r.id)}">
       <span class="d">${d.toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit" })}<small>${r.waNr ? "Nr. " + esc(r.waNr) : ""}</small></span>
       <span class="m"><b>${esc(fieldName(r.feldId))}</b>
-        <span>${fmt(c.netto / 1000, 2)} t nass · ${fmt(r.feuchte, 1)} % · ${r.ha ? fmt(r.ha, 2) + " ha" : "ohne ha"}${r.foto ? " · Foto" : ""}</span>
+        <span>${fmt(c.netto / 1000, 2)} t nass · ${fmt(r.feuchte, 1)} % · ${r.ha ? fmt(r.ha, 2) + " ha" : "ohne ha"}${r.foto || r.hatFoto ? " · Foto" : ""}</span>
         <span class="bar" aria-hidden="true"><i style="width:${pct}%"></i></span></span>
       <span class="y">${c.tmHa != null ? fmt(c.tmHa / 1000, 2) : "–"}<small>t TM/ha</small></span>
     </button></li>`;
@@ -726,7 +757,7 @@ function openDetail(id) {
       <div><dt>Ware ${fmt(state.settings.stdFeuchte, 0)} % / ha</dt><dd>${c.stdHa != null ? fmt(c.stdHa / 1000, 2) + " t" : "–"}</dd></div>
     </dl>
     ${r.sorte || r.notiz ? `<p class="note">${r.sorte ? "Sorte: " + esc(r.sorte) : ""}${r.sorte && r.notiz ? " · " : ""}${esc(r.notiz)}</p>` : ""}
-    ${url ? `<img src="${url}" alt="Foto des Wiegescheins">` : `<p class="note">Kein Foto gespeichert.</p>`}
+    <div id="dlgFoto">${url ? `<img src="${url}" alt="Foto des Wiegescheins">` : r.hatFoto ? `<p class="note">Foto wird aus dem Konto geladen …</p>` : `<p class="note">Kein Foto gespeichert.</p>`}</div>
     <div class="row"><button type="button" data-act="edit" style="flex:1">Bearbeiten</button><button type="button" class="btn-danger" data-act="del">Löschen</button></div>
     <div class="confirm" id="confirmDel" hidden>Diese Fuhre samt Foto endgültig löschen?
       <div class="row"><button type="button" class="btn-danger" data-act="del-yes">Ja, löschen</button><button type="button" data-act="del-no">Abbrechen</button></div></div>`;
@@ -740,13 +771,24 @@ function openDetail(id) {
     if (act === "del-yes") deleteRec(r.id);
     if (act === "edit") {
       dlg.close(); switchTab("erfassen");
-      state.editId = r.id; fillForm(r); setFoto(r.foto || null);
+      state.editId = r.id; fillForm(r);
+      const cur = state.lieferungen.find((x) => x.id === r.id) || r;
+      setFoto(cur.foto || null); state.fotoRemote = !cur.foto && !!cur.hatFoto;
+      if (state.fotoRemote) $("thumb").textContent = "Foto im Konto";
       $("editFlag").hidden = false; $("exampleNote").hidden = true; $("btnSave").textContent = "Änderung speichern";
       window.scrollTo({ top: 0 });
     }
   };
-  dlg.onclose = () => { if (url) URL.revokeObjectURL(url); };
+  let remoteUrl = null;
+  dlg.onclose = () => { if (url) URL.revokeObjectURL(url); if (remoteUrl) URL.revokeObjectURL(remoteUrl); };
   if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+  if (!url && r.hatFoto) {
+    loadRemoteFoto(r.id).then((blob) => {
+      const box = $("dlgFoto"); if (!box || !dlg.open) return;
+      if (blob) { remoteUrl = URL.createObjectURL(blob); box.innerHTML = `<img src="${remoteUrl}" alt="Foto des Wiegescheins">`; }
+      else box.innerHTML = `<p class="note">Foto gerade nicht erreichbar (offline oder nicht angemeldet).</p>`;
+    });
+  }
 }
 
 /* ---------------- Felder-Ansicht ---------------- */
@@ -807,30 +849,31 @@ async function exportCsv() {
     const c = calc(r) || {};
     return [r.datum, r.jahr, r.waNr, r.kennzeichen, fieldName(r.feldId), n(r.ha, 2), n(r.w1, 0), n(r.w2, 0), n(c.netto, 0), n(r.feuchte, 1), n(r.abzug, 1), n(c.tm, 0), n(c.tmHa != null ? c.tmHa / 1000 : null, 2), n(c.stdHa != null ? c.stdHa / 1000 : null, 2), r.sorte, r.notiz, r.kundeNr].map(csvCell).join(";");
   });
-  await offerFile(`maisertrag-${today()}.csv`, "﻿" + [head.join(";"), ...rows].join("\r\n"), "text/csv");
+  await offerFile(`maisdoc-${today()}.csv`, "﻿" + [head.join(";"), ...rows].join("\r\n"), "text/csv");
 }
 const blobToDataUrl = (b) => new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => res(null); fr.readAsDataURL(b); });
 async function exportJson() {
   const lief = [];
   for (const r of state.lieferungen) lief.push({ ...r, foto: r.foto ? await blobToDataUrl(r.foto) : null });
-  const payload = { app: "maisertrag-reding", schema: 1, exportiert: new Date().toISOString(), settings: state.settings, felder: state.felder, lieferungen: lief };
-  await offerFile(`maisertrag-sicherung-${today()}.json`, JSON.stringify(payload), "application/json");
+  const payload = { app: "maisdoc", schema: 1, exportiert: new Date().toISOString(), settings: state.settings, felder: state.felder, lieferungen: lief };
+  await offerFile(`maisdoc-sicherung-${today()}.json`, JSON.stringify(payload), "application/json");
 }
 async function importJson(file) {
   try {
     const data = JSON.parse(await file.text());
-    if (data.app !== "maisertrag-reding" || !Array.isArray(data.lieferungen)) throw new Error("fmt");
-    for (const f of data.felder || []) { if (!state.felder.some((x) => x.id === f.id)) { await Store.put("felder", f); state.felder.push(f); } }
+    if (!["maisdoc", "maisertrag-reding"].includes(data.app) || !Array.isArray(data.lieferungen)) throw new Error("fmt");
+    const now = new Date().toISOString();
+    for (const f0 of data.felder || []) { if (!state.felder.some((x) => x.id === f0.id)) { const f = { ...f0, geaendert: f0.geaendert || now, dirty: true }; await Store.put("felder", f); state.felder.push(f); } }
     let n = 0;
     for (const r of data.lieferungen) {
       const foto = r.foto ? await (await fetch(r.foto)).blob().catch(() => null) : null;
-      const rec = { ...r, foto };
+      const rec = { ...r, foto, hatFoto: !!foto, fotoDirty: !!foto, geaendert: r.geaendert || now, dirty: true };
       await Store.put("lieferungen", rec);
       const i = state.lieferungen.findIndex((x) => x.id === rec.id);
       if (i >= 0) state.lieferungen[i] = rec; else { state.lieferungen.push(rec); n++; }
     }
-    renderAll(); toast(`${n} neue Fuhren eingelesen`);
-  } catch (e) { toast("Die Datei ist keine Maisertrag-Sicherung."); }
+    renderAll(); toast(`${n} neue Fuhren eingelesen`); scheduleSync();
+  } catch (e) { toast("Die Datei ist keine MaisDoc-Sicherung."); }
 }
 
 /* ---------------- Einstellungen ---------------- */
@@ -839,10 +882,16 @@ async function saveSettings() {
   s.kundeNr = $("setKunde").value.trim();
   const std = num($("setStd").value); s.stdFeuchte = std != null && std >= 0 && std < 40 ? std : 14;
   s.abzugAnwenden = $("setAbzug").checked;
+  s.geaendert = new Date().toISOString(); s.dirty = true;
   await Store.put("meta", s, "settings");
-  renderKunde(); updateResult(); renderVerlauf(); renderFelder();
+  updateResult(); renderVerlauf(); renderFelder();
+  scheduleSync();
 }
-function renderKunde() { $("kundeLabel").textContent = state.settings.kundeNr ? `Kunde ${state.settings.kundeNr}` : ""; }
+function applySettingsToForm() {
+  $("setKunde").value = state.settings.kundeNr || "";
+  $("setStd").value = String(state.settings.stdFeuchte ?? 14).replace(".", ",");
+  $("setAbzug").checked = !!state.settings.abzugAnwenden;
+}
 
 /* ---------------- UI-Helfer ---------------- */
 function safeLS(op, k, v) { try { if (op === "get") return localStorage.getItem("maisertrag." + k); localStorage.setItem("maisertrag." + k, v); } catch (e) { return null; } }
@@ -855,6 +904,296 @@ function switchTab(name) {
   window.scrollTo({ top: 0 });
 }
 function renderAll() { renderFieldSelect($("feld").value); renderVerlauf(); renderFelder(); }
+
+/* ---------------- Konto und Abgleich ----------------
+   Ohne Konto bleibt alles auf dem Gerät. Mit Konto werden Fuhren, Felder, Fotos und
+   Einstellungen abgeglichen: geänderte Einträge tragen "dirty", Löschungen "geloescht".
+   Konflikt: der jüngere Stand ("geaendert") gewinnt.
+------------------------------------------------------ */
+const Acct = { available: false, user: null, busy: false, again: false, timer: null, status: "local", msg: "", last: null };
+
+async function reloadState() {
+  const all = (await Store.all("lieferungen")) || [];
+  const felder = (await Store.all("felder")) || [];
+  state.lieferungen = all.filter((r) => !r.geloescht);
+  state.felder = felder.filter((f) => !f.geloescht);
+}
+
+async function api(path, body, method) {
+  let r;
+  try {
+    r = await fetch(path, { method: method || (body ? "POST" : "GET"), credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-MaisDoc": "1" }, body: body ? JSON.stringify(body) : undefined });
+  } catch (e) { const err = new Error("Keine Verbindung."); err.offline = true; throw err; }
+  const ct = r.headers.get("content-type") || "";
+  if (!ct.includes("json")) { if (r.ok) return r; const err = new Error("Konto-Dienst nicht erreichbar."); err.status = r.status; err.noApi = true; throw err; }
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { const err = new Error(data.error || "Anfrage fehlgeschlagen."); err.status = r.status; err.code = data.code; throw err; }
+  return data;
+}
+
+const blobToBase64 = (b) => blobToDataUrl(b).then((u) => (u || "").split(",")[1] || "");
+const stripLocal = ({ foto, dirty, fotoDirty, ...rest }) => rest;
+
+function setAcct(status, msg) {
+  Acct.status = status; Acct.msg = msg || "";
+  const dot = $("acctDot"), txt = $("acctText");
+  $("btnKonto").hidden = !Acct.available && !Acct.user;
+  $("acctName").textContent = Acct.user ? (Acct.user.name || Acct.user.email) : "Anmelden";
+  const t = Acct.last ? Acct.last.toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" }) : "";
+  const map = {
+    local: ["", "nur auf diesem Gerät"],
+    busy: ["busy", "gleicht ab …"],
+    ok: ["ok", t ? `abgeglichen ${t}` : "abgeglichen"],
+    offline: ["warn", "offline, wird nachgereicht"],
+    error: ["bad", "Abgleich fehlgeschlagen"],
+    nodb: ["warn", "Konto noch nicht eingerichtet"],
+  }[status] || ["", ""];
+  dot.className = "dot " + map[0]; txt.textContent = map[1];
+  $("backupNote").textContent = Acct.user
+    ? "Deine Daten liegen im Konto und auf diesem Gerät. Zusätzlich kannst du eine Sicherung (JSON, mit Fotos) oder eine Tabelle (CSV für Excel) speichern."
+    : "Ohne Konto liegen die Daten nur auf diesem Gerät. Die Sicherung (JSON, mit Fotos) lässt sich auf einem anderen Gerät wieder einlesen. Die Tabelle (CSV) öffnet Excel.";
+}
+
+function scheduleSync(delay = 800) {
+  if (!Acct.user) return;
+  clearTimeout(Acct.timer);
+  Acct.timer = setTimeout(syncNow, delay);
+}
+
+async function syncNow() {
+  if (!Acct.user) return;
+  if (Acct.busy) { Acct.again = true; return; }
+  if (navigator.onLine === false) { setAcct("offline"); return; }
+  Acct.busy = true; setAcct("busy");
+  try {
+    const all = (await Store.all("lieferungen")) || [];
+    const allF = (await Store.all("felder")) || [];
+    const dirtyL = all.filter((r) => r.dirty), dirtyF = allF.filter((f) => f.dirty);
+    const since = (await Store.get("meta", "since")) || null;
+    const payload = { since, lieferungen: dirtyL.map(stripLocal), felder: dirtyF.map(stripLocal) };
+    const sentSettings = state.settings.dirty ? state.settings.geaendert : null;
+    if (sentSettings) { const { dirty, ...st } = state.settings; payload.settings = st; }
+    const res = await api("/api/sync", payload);
+
+    // Gesendetes als abgeglichen markieren (nur wenn seitdem nicht erneut geändert)
+    for (const [store, list] of [["lieferungen", dirtyL], ["felder", dirtyF]]) {
+      for (const x of list) {
+        const cur = await Store.get(store, x.id);
+        if (cur && cur.geaendert === x.geaendert && cur.dirty) { cur.dirty = false; await Store.put(store, cur); }
+      }
+    }
+    // Fotos hochladen bzw. entfernen
+    for (const r of ((await Store.all("lieferungen")) || []).filter((x) => x.fotoDirty && !x.dirty)) {
+      if (r.geloescht) { r.fotoDirty = false; await Store.put("lieferungen", r); continue; }
+      if (r.foto) await api(`/api/foto?id=${encodeURIComponent(r.id)}`, { mime: r.foto.type || "image/jpeg", data: await blobToBase64(r.foto) });
+      else await api(`/api/foto?id=${encodeURIComponent(r.id)}`, {}, "DELETE");
+      const cur = await Store.get("lieferungen", r.id);
+      if (cur) { cur.fotoDirty = false; await Store.put("lieferungen", cur); }
+    }
+    // Stand vom Konto übernehmen
+    for (const [store, list] of [["lieferungen", res.lieferungen || []], ["felder", res.felder || []]]) {
+      for (const srv of list) {
+        const cur = await Store.get(store, srv.id);
+        if (cur && cur.dirty && cur.geaendert > srv.geaendert) continue;          // eigener Stand ist jünger
+        if (cur && !cur.dirty && cur.geaendert === srv.geaendert && !!cur.geloescht === !!srv.geloescht) continue;
+        const next = { ...srv, dirty: false };
+        if (store === "lieferungen") {
+          next.foto = srv.geloescht ? null : (cur && cur.foto) || null;
+          next.fotoDirty = false;
+          if (!srv.geloescht && res.fotos) next.hatFoto = res.fotos.includes(srv.id) || !!next.foto;
+        }
+        await Store.put(store, next);
+      }
+    }
+    // Einstellungen
+    const srvS = res.settings || {};
+    if (srvS.geaendert && (!state.settings.geaendert || srvS.geaendert > state.settings.geaendert)) {
+      Object.assign(state.settings, srvS, { dirty: false });
+      await Store.put("meta", state.settings, "settings"); applySettingsToForm();
+    } else if (sentSettings && state.settings.geaendert === sentSettings) {
+      state.settings.dirty = false; await Store.put("meta", state.settings, "settings");
+    }
+    await Store.put("meta", res.serverTime, "since");
+    await reloadState(); renderAll(); updateResult();
+    Acct.last = new Date(); setAcct("ok");
+  } catch (e) {
+    if (e.status === 401) { await sessionLost(); }
+    else if (e.code === "no_db") setAcct("nodb");
+    else if (e.offline) setAcct("offline");
+    else setAcct("error", e.message);
+  } finally {
+    Acct.busy = false;
+    if (Acct.again) { Acct.again = false; scheduleSync(300); }
+  }
+}
+
+async function loadRemoteFoto(id) {
+  if (!Acct.user) return null;
+  try {
+    const r = await api(`/api/foto?id=${encodeURIComponent(id)}`);
+    const blob = await r.blob();
+    const cur = await Store.get("lieferungen", id);
+    if (cur && !cur.foto) { cur.foto = blob; await Store.put("lieferungen", cur); const i = state.lieferungen.findIndex((x) => x.id === id); if (i >= 0) state.lieferungen[i] = cur; }
+    return blob;
+  } catch (e) { return null; }
+}
+
+async function afterLogin(user) {
+  Acct.user = user;
+  await Store.put("meta", user, "user");
+  const prevUser = await Store.get("meta", "syncUser");
+  if (prevUser !== user.id) {
+    // Erstes Mal mit diesem Konto auf diesem Gerät: alles Vorhandene hochladen
+    for (const store of ["lieferungen", "felder"]) {
+      for (const x of (await Store.all(store)) || []) {
+        x.dirty = true; x.geaendert = x.geaendert || x.erstellt || x.angelegt || new Date().toISOString();
+        if (store === "lieferungen" && x.foto) { x.fotoDirty = true; x.hatFoto = true; }
+        await Store.put(store, x);
+      }
+    }
+    if (!state.settings.geaendert || !user.settings || !user.settings.geaendert) {
+      state.settings.geaendert = state.settings.geaendert || new Date().toISOString(); state.settings.dirty = true;
+      await Store.put("meta", state.settings, "settings");
+    }
+    await Store.put("meta", null, "since");
+    await Store.put("meta", user.id, "syncUser");
+  }
+  setAcct("busy");
+  await syncNow();
+}
+
+async function sessionLost() {
+  Acct.user = null;
+  await Store.put("meta", null, "user");
+  setAcct("local");
+  toast("Bitte wieder anmelden, damit abgeglichen wird.");
+}
+
+async function initAccount() {
+  const cached = await Store.get("meta", "user").catch(() => null);
+  if (cached) { Acct.user = cached; Acct.available = true; }
+  setAcct(cached ? "offline" : "local");
+  if (location.protocol === "file:") { $("btnKonto").hidden = !cached; return; }
+  try {
+    const r = await api("/api/auth");
+    Acct.available = true;
+    if (r.user) { Acct.user = r.user; await Store.put("meta", r.user, "user"); await syncNow(); }
+    else if (cached) await sessionLost();
+    else setAcct("local");
+  } catch (e) {
+    if (e.noApi) { Acct.available = false; setAcct("local"); }   // z. B. Vorschau ohne Server
+    else setAcct(cached ? "offline" : "local");
+  }
+  window.addEventListener("online", () => scheduleSync(200));
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") scheduleSync(200); });
+}
+
+/* ---------- Konto-Dialog ---------- */
+function openAccount(mode) {
+  const dlg = $("dlg");
+  const u = Acct.user;
+  if (!u) {
+    mode = mode || "login";
+    $("dlgBody").innerHTML = `
+      <div class="row" style="justify-content:space-between"><h2>Konto</h2><button type="button" class="btn-sm btn-ghost" data-act="close">Schließen</button></div>
+      <p class="note">Mit einem Konto siehst du deine Fuhren, Felder und Wiegescheine auf jedem Gerät und über alle Erntejahre. Nur du siehst deine Daten. Was schon auf diesem Gerät liegt, wird beim ersten Anmelden übernommen.</p>
+      <div class="seg" role="group" aria-label="Anmelden oder registrieren">
+        <button type="button" data-act="mode-login" aria-pressed="${mode === "login"}">Anmelden</button>
+        <button type="button" data-act="mode-reg" aria-pressed="${mode === "reg"}">Konto anlegen</button>
+      </div>
+      <form id="acctForm" class="stack" novalidate>
+        ${mode === "reg" ? `<label class="f">Name <span class="u">optional</span><input id="aName" autocomplete="name"></label>` : ""}
+        <label class="f">E-Mail<input id="aEmail" type="email" autocomplete="email" inputmode="email" required></label>
+        <label class="f">Passwort ${mode === "reg" ? `<span class="u">mindestens 8 Zeichen</span>` : ""}<input id="aPw" type="password" autocomplete="${mode === "reg" ? "new-password" : "current-password"}" required></label>
+        <div class="err" id="aErr" hidden></div>
+        <button type="submit" class="btn-primary">${mode === "reg" ? "Konto anlegen" : "Anmelden"}</button>
+      </form>
+      <p class="note">${mode === "login" ? "Passwort vergessen? Schreib an info@blickwinkel.pro, wir setzen es zurück." : "Mit dem Anlegen stimmst du zu, dass BLICKWINKEL deine Fuhren, Felder und Fotos speichert, um sie dir anzuzeigen. Du kannst das Konto jederzeit mit allen Daten löschen."}</p>`;
+    dlg.onclick = (e) => {
+      const a = e.target.closest("[data-act]"); if (!a) { if (e.target === dlg) dlg.close(); return; }
+      if (a.dataset.act === "close") dlg.close();
+      if (a.dataset.act === "mode-login") openAccount("login");
+      if (a.dataset.act === "mode-reg") openAccount("reg");
+    };
+    $("acctForm").onsubmit = async (ev) => {
+      ev.preventDefault();
+      const err = $("aErr"); err.hidden = true;
+      const btn = ev.target.querySelector("button[type=submit]"); btn.disabled = true;
+      try {
+        const body = { email: $("aEmail").value, password: $("aPw").value };
+        if (mode === "reg") { body.name = $("aName").value; const { dirty, ...st } = state.settings; body.settings = { ...st, geaendert: st.geaendert || new Date().toISOString() }; }
+        const r = await api(`/api/auth?action=${mode === "reg" ? "register" : "login"}`, body);
+        dlg.close();
+        toast(mode === "reg" ? "Konto angelegt" : "Angemeldet");
+        await afterLogin(r.user);
+      } catch (e) {
+        err.textContent = e.code === "no_db" ? "Das Konto ist auf dem Server noch nicht eingerichtet." : e.offline ? "Keine Verbindung. Bitte später erneut versuchen." : e.message;
+        err.hidden = false;
+      } finally { btn.disabled = false; }
+    };
+  } else {
+    const pending = state.lieferungen.filter((r) => r.dirty).length + state.felder.filter((f) => f.dirty).length;
+    $("dlgBody").innerHTML = `
+      <div class="row" style="justify-content:space-between"><h2>Konto</h2><button type="button" class="btn-sm btn-ghost" data-act="close">Schließen</button></div>
+      <div class="stack" style="gap:4px"><b>${esc(u.name || u.email)}</b>${u.name ? `<span class="note">${esc(u.email)}</span>` : ""}
+        <span class="acct-state"><i class="dot ${$("acctDot").className.replace("dot", "").trim()}"></i>${esc($("acctText").textContent)}${pending ? ` · ${pending} Änderungen offen` : ""}</span></div>
+      <button type="button" data-act="sync">Jetzt abgleichen</button>
+      <details class="more"><summary>Passwort ändern</summary>
+        <form id="pwForm" class="stack" novalidate>
+          <label class="f">Bisheriges Passwort<input id="pOld" type="password" autocomplete="current-password"></label>
+          <label class="f">Neues Passwort <span class="u">mindestens 8 Zeichen</span><input id="pNew" type="password" autocomplete="new-password"></label>
+          <div class="err" id="pErr" hidden></div>
+          <button type="submit">Passwort ändern</button>
+        </form></details>
+      <hr class="sep">
+      <button type="button" data-act="logout">Abmelden</button>
+      <div class="confirm" id="logoutBox" hidden>
+        ${pending ? `<b>${pending} Änderungen sind noch nicht im Konto.</b> Erst abgleichen, sonst gehen sie beim Leeren verloren.` : "Sollen die Daten auf diesem Gerät bleiben?"}
+        <div class="row"><button type="button" data-act="logout-keep">Abmelden, Daten behalten</button>
+        <button type="button" class="btn-danger" data-act="logout-wipe">Abmelden und Gerät leeren</button></div></div>
+      <details class="more"><summary>Konto löschen</summary>
+        <form id="delForm" class="stack" novalidate>
+          <p class="note">Löscht das Konto mit allen Fuhren, Feldern und Fotos auf dem Server. Die Daten auf diesem Gerät bleiben.</p>
+          <label class="f">Passwort zur Bestätigung<input id="dPw" type="password" autocomplete="current-password"></label>
+          <div class="err" id="dErr" hidden></div>
+          <button type="submit" class="btn-danger">Konto endgültig löschen</button>
+        </form></details>`;
+    dlg.onclick = async (e) => {
+      const a = e.target.closest("[data-act]"); if (!a) { if (e.target === dlg) dlg.close(); return; }
+      const act = a.dataset.act;
+      if (act === "close") dlg.close();
+      if (act === "sync") { dlg.close(); await syncNow(); toast(Acct.status === "ok" ? "Abgeglichen" : $("acctText").textContent); }
+      if (act === "logout") $("logoutBox").hidden = false;
+      if (act === "logout-keep" || act === "logout-wipe") {
+        try { await api("/api/auth?action=logout", {}); } catch (err) { /* offline: Sitzung läuft serverseitig ab */ }
+        Acct.user = null; await Store.put("meta", null, "user");
+        if (act === "logout-wipe") {
+          for (const store of ["lieferungen", "felder"]) for (const x of (await Store.all(store)) || []) await Store.del(store, x.id);
+          await Store.put("meta", null, "syncUser"); await Store.put("meta", null, "since");
+          await reloadState(); renderAll(); resetForm(true);
+        }
+        dlg.close(); setAcct("local"); toast("Abgemeldet");
+      }
+    };
+    $("pwForm").onsubmit = async (ev) => {
+      ev.preventDefault(); const err = $("pErr"); err.hidden = true;
+      try { await api("/api/auth?action=password", { old: $("pOld").value, password: $("pNew").value }); dlg.close(); toast("Passwort geändert"); }
+      catch (e) { err.textContent = e.offline ? "Keine Verbindung." : e.message; err.hidden = false; }
+    };
+    $("delForm").onsubmit = async (ev) => {
+      ev.preventDefault(); const err = $("dErr"); err.hidden = true;
+      try {
+        await api("/api/auth?action=delete", { password: $("dPw").value });
+        Acct.user = null; await Store.put("meta", null, "user"); await Store.put("meta", null, "syncUser"); await Store.put("meta", null, "since");
+        dlg.close(); setAcct("local"); toast("Konto gelöscht");
+      } catch (e) { err.textContent = e.offline ? "Keine Verbindung." : e.message; err.hidden = false; }
+    };
+  }
+  if (!dlg.open) { if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", ""); }
+  dlg.onclose = null;
+}
+$("btnKonto").addEventListener("click", () => openAccount());
 
 /* ---------------- Ereignisse ---------------- */
 document.querySelectorAll("nav.tabs [data-tab]").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
@@ -879,17 +1218,20 @@ $("foto").addEventListener("change", async (e) => {
   const file = e.target.files && e.target.files[0]; e.target.value = "";
   if (!file) return;
   $("ocrStatus").textContent = "Foto wird verkleinert …";
-  setFoto(await shrinkImage(file));
+  setFoto(await shrinkImage(file, 1400, 0.78), true);
   $("ocrStatus").textContent = "Foto übernommen. Werte prüfen oder „Werte aus Foto lesen“.";
 });
-$("btnFotoWeg").addEventListener("click", () => setFoto(null));
+$("btnFotoWeg").addEventListener("click", () => setFoto(null, true));
 $("btnOcr").addEventListener("click", runOcr);
 $("yearChipsV").addEventListener("click", (e) => { const b = e.target.closest("[data-year]"); if (b) { state.year = +b.dataset.year; renderVerlauf(); } });
 $("timeline").addEventListener("click", (e) => { const b = e.target.closest("[data-id]"); if (b) openDetail(b.dataset.id); });
 $("fieldCards").addEventListener("click", async (e) => {
   const b = e.target.closest("[data-delfield]"); if (!b) return;
-  await Store.del("felder", b.dataset.delfield);
-  state.felder = state.felder.filter((f) => f.id !== b.dataset.delfield);
+  const now = new Date().toISOString();
+  const f = state.felder.find((x) => x.id === b.dataset.delfield);
+  await Store.put("felder", { ...f, geaendert: now, geloescht: now, dirty: true });
+  state.felder = state.felder.filter((x) => x.id !== b.dataset.delfield);
+  scheduleSync();
   renderAll(); toast("Feld entfernt");
 });
 $("btnAddField").addEventListener("click", async () => {
@@ -905,22 +1247,19 @@ $("importFile").addEventListener("change", (e) => { const f = e.target.files && 
 (async function start() {
   await Store.open();
   try {
-    state.lieferungen = (await Store.all("lieferungen")) || [];
-    state.felder = (await Store.all("felder")) || [];
+    await reloadState();
     const s = await Store.get("meta", "settings");
     if (s) Object.assign(state.settings, s);
   } catch (e) { /* leerer Start */ }
   if (Store.isVolatile) $("storageBanner").hidden = false;
-  $("setKunde").value = state.settings.kundeNr || "";
-  $("setStd").value = String(state.settings.stdFeuchte).replace(".", ",");
-  $("setAbzug").checked = !!state.settings.abzugAnwenden;
-  renderKunde();
+  applySettingsToForm();
   renderAll();
   resetForm(state.lieferungen.length === 0);
   // Offline-Betrieb, nur auf der eigenen Webadresse (nicht in Vorschauen / file://)
   try { if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {}); } catch (e) {}
   const t = safeLS("get", "tab");
   if (t && ["erfassen", "verlauf", "felder"].includes(t)) switchTab(t);
+  initAccount();
 })();
 </script>
 </body>
