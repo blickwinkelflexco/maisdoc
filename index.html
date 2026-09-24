@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1206">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b1206'/%3E%3Cpath d='M9 24c3-9 8-14 14-16-1 7-6 13-14 16z' fill='%236ab43e'/%3E%3C/svg%3E">
+<title>Maisertrag Reding</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap">
+<style>
+:root{
+  /* BLICKWINKEL CI (blickwinkel_f200_landing, index.css) */
+  --paper:#fcfdfb;
+  --slip:#f2f4f0;
+  --slip-line:#dfe3db;
+  --surface:#ffffff;
+  --ink:#0b1206;
+  --ink-soft:#4d5249;
+  --muted:#7b8275;
+  --line:#e3e6e0;
+  --mais:#6ab43e;
+  --mais-ink:#3f7a22;
+  --mais-soft:#eef6e8;
+  --on-mais:#ffffff;
+  --good:#3f7a22;
+  --warn:#a86a00;
+  --bad:#c0332b;
+  --focus:#6ab43e;
+  --shadow:0 1px 2px rgba(11,18,6,.06),0 4px 14px rgba(11,18,6,.05);
+  --f-ui:"Roboto",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-head:"Montserrat",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"Montserrat",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#070a06;--slip:#0e1509;--slip-line:rgba(126,217,87,.22);--surface:#0b1206;
+    --ink:#eaf4e4;--ink-soft:#b8c9ae;--muted:#9db292;--line:rgba(126,217,87,.14);
+    --mais:#7ed957;--mais-ink:#7ed957;--mais-soft:rgba(126,217,87,.10);--on-mais:#0b1206;
+    --good:#7ed957;--warn:#ffb020;--bad:#ff5a4e;--focus:#7ed957;
+    --shadow:0 1px 2px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#070a06;--slip:#0e1509;--slip-line:rgba(126,217,87,.22);--surface:#0b1206;
+  --ink:#eaf4e4;--ink-soft:#b8c9ae;--muted:#9db292;--line:rgba(126,217,87,.14);
+  --mais:#7ed957;--mais-ink:#7ed957;--mais-soft:rgba(126,217,87,.10);--on-mais:#0b1206;
+  --good:#7ed957;--warn:#ffb020;--bad:#ff5a4e;--focus:#7ed957;
+  --shadow:0 1px 2px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:16px/1.45 var(--f-ui);-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+img{max-width:100%}
+.wrap{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:0 110px}
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-block:18px 10px}
+.brand{display:flex;flex-direction:column;gap:2px}
+.brand small{color:var(--mais-ink);font:500 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.brand h1{margin:0;font:700 26px/1.05 var(--f-head);letter-spacing:.01em;text-wrap:balance}
+.brand h1 span{color:var(--mais-ink)}
+.brand .sub{margin:2px 0 0;font:400 13px/1.3 var(--f-ui);color:var(--ink-soft)}
+.kunde{font:500 12px/1.2 var(--f-mono);color:var(--ink-soft);text-align:right}
+h2{font:600 20px/1.15 var(--f-head);margin:0;letter-spacing:.01em}
+h3{font:600 16px/1.25 var(--f-head);margin:0;letter-spacing:.02em}
+.eyebrow{font:500 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.note{font-size:13px;color:var(--ink-soft)}
+.banner{border:1px solid var(--warn);color:var(--warn);background:var(--surface);border-radius:8px;padding:10px 12px;font-size:14px}
+
+/* Buttons */
+button,.btn{font:600 15px/1 var(--f-head);border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:11px 14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px}
+button:hover{border-color:var(--ink-soft)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,label.btn:focus-within{outline:2px solid var(--focus);outline-offset:2px}
+.btn-primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn-primary:hover{opacity:.92}
+.btn-mais{background:var(--mais);color:var(--on-mais);border-color:var(--mais)}
+.btn-ghost{background:transparent}
+.btn-danger{color:var(--bad);border-color:var(--bad);background:transparent}
+.btn-sm{min-height:34px;padding:7px 10px;font-size:13px}
+button:disabled{opacity:.5;cursor:not-allowed}
+
+/* Tabs */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs .inner{max-width:720px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
+nav.tabs button{border:0;border-radius:0;background:transparent;flex-direction:column;gap:3px;min-height:60px;font:600 13px/1 var(--f-ui);color:var(--muted)}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-selected="true"]{color:var(--ink)}
+nav.tabs button[aria-selected="true"] svg{color:var(--mais-ink)}
+
+/* Lieferschein-Formular im Stil des grünen Wiegescheins */
+.slip{background:var(--slip);border:1px solid var(--slip-line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:14px;font-family:var(--f-mono);position:relative}
+.slip-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline;border-bottom:1px solid var(--slip-line);padding-bottom:10px}
+.slip-head b{font:600 14px/1.2 var(--f-mono)}
+.slip-head span{font-size:12px;color:var(--ink-soft)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.grid .full{grid-column:1/-1}
+@media (max-width:420px){.grid{grid-template-columns:minmax(0,1fr)}}
+label.f{display:flex;flex-direction:column;gap:5px;font:500 12px/1.2 var(--f-mono);color:var(--ink-soft);letter-spacing:.02em}
+label.f .u{color:var(--muted);font-weight:400}
+input,select,textarea{font:500 16px/1.2 var(--f-mono);color:var(--ink);background:var(--surface);border:1px solid var(--slip-line);border-radius:6px;padding:10px 11px;width:100%;min-height:44px;font-variant-numeric:tabular-nums}
+textarea{min-height:64px;resize:vertical;font-size:15px}
+input.calc{background:transparent;border-style:dashed}
+.hint{font:400 12px/1.3 var(--f-mono);color:var(--warn)}
+.ha-box{background:var(--mais-soft);border:2px solid var(--mais);border-radius:8px;padding:12px}
+.ha-box label.f{color:var(--ink)}
+.ha-box input{font-size:22px;font-weight:700;border-color:var(--mais)}
+
+/* Foto */
+.photo{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center}
+.thumb{width:96px;height:120px;border-radius:4px;border:1px dashed var(--slip-line);background:var(--surface);display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--muted);font:500 11px/1.2 var(--f-mono);text-align:center;padding:6px}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+label.btn input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+label.btn{position:relative}
+#ocrStatus{font:400 12px/1.35 var(--f-mono);color:var(--ink-soft)}
+
+/* Ergebnis */
+.result{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px}
+.hero-num{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.hero-num .v{font:700 48px/1 var(--f-head);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.hero-num .u{font:600 18px/1 var(--f-head);color:var(--ink-soft)}
+.hero-num .v.empty{color:var(--muted);font-size:28px}
+.kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:420px){.kv{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kv div{display:flex;flex-direction:column;gap:3px;border-top:1px solid var(--line);padding-top:8px}
+.kv dt{font:500 11px/1.2 var(--f-mono);color:var(--muted);letter-spacing:.04em;margin:0}
+.kv dd{margin:0;font:600 18px/1.1 var(--f-mono);font-variant-numeric:tabular-nums}
+.formula{font:400 12px/1.5 var(--f-mono);color:var(--muted)}
+
+/* Chips */
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{min-height:34px;padding:6px 12px;border-radius:999px;font:600 13px/1 var(--f-mono)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+/* Verlauf */
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+@media (max-width:480px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.summary div{background:var(--surface);padding:12px;display:flex;flex-direction:column;gap:4px}
+.summary b{font:700 22px/1.05 var(--f-head);font-variant-numeric:tabular-nums}
+.summary b.mais{color:var(--mais-ink)}
+.summary span{font:500 11px/1.2 var(--f-mono);color:var(--muted);letter-spacing:.04em}
+.timeline{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.timeline li{border-bottom:1px solid var(--line)}
+.timeline li:last-child{border-bottom:0}
+.tl{display:grid;grid-template-columns:62px 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;border:0;border-radius:0;background:transparent;padding:12px 4px;min-height:64px}
+.tl:hover{background:var(--surface)}
+.tl .d{font:600 13px/1.15 var(--f-mono);color:var(--ink-soft)}
+.tl .d small{display:block;font-weight:400;color:var(--muted)}
+.tl .m{display:flex;flex-direction:column;gap:3px;min-width:0}
+.tl .m b{font:600 17px/1.15 var(--f-head);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tl .m span{font:400 12px/1.3 var(--f-mono);color:var(--muted)}
+.tl .y{text-align:right;font:700 20px/1.05 var(--f-head);font-variant-numeric:tabular-nums}
+.tl .y small{display:block;font:500 11px/1.2 var(--f-mono);color:var(--muted)}
+.bar{height:4px;border-radius:2px;background:var(--line);margin-top:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--mais)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px 12px}
+.empty{padding:24px 12px;text-align:center;color:var(--ink-soft);font-size:15px}
+
+/* Felder */
+.field-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.field-card header{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.field-card header span{font:400 12px/1.2 var(--f-mono);color:var(--muted)}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font:500 14px/1.3 var(--f-mono);font-variant-numeric:tabular-nums}
+th{font:500 11px/1.2 var(--f-mono);color:var(--muted);letter-spacing:.04em;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{text-align:right;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;padding-left:0}
+tr:last-child td{border-bottom:0}
+td.hi{font-weight:600;color:var(--mais-ink)}
+.delta-up{color:var(--good)}.delta-down{color:var(--bad)}
+
+/* Dialog */
+dialog{border:1px solid var(--line);border-radius:12px;padding:0;background:var(--surface);color:var(--ink);width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 48px)}
+dialog::backdrop{background:rgba(10,20,14,.55)}
+.dlg{padding:16px;display:flex;flex-direction:column;gap:14px}
+.dlg img{border-radius:6px;border:1px solid var(--line)}
+.confirm{border:1px solid var(--bad);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:8px;font:600 14px/1.2 var(--f-ui);z-index:40;max-width:calc(100vw - 32px)}
+.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
+@media (prefers-reduced-motion:no-preference){.result .v{transition:color .2s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <small>BLICKWINKEL</small>
+      <h1>Mais<span>ertrag</span></h1>
+      <p class="sub">für Mitglieder der Trocknungsgenossenschaft Reding eG</p>
+    </div>
+    <div class="kunde" id="kundeLabel"></div>
+  </header>
+
+  <div class="banner" id="storageBanner" hidden>Dieser Browser speichert keine Daten dauerhaft (privates Fenster oder Speicher gesperrt). Erfasste Fuhren gehen beim Schließen verloren. Bitte vorher unter „Felder“ sichern.</div>
+
+  <!-- ======================= ERFASSEN ======================= -->
+  <section id="view-erfassen" class="stack" aria-labelledby="h-erfassen">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="h-erfassen">Fuhre erfassen</h2>
+      <span class="eyebrow" id="editFlag" hidden>Bearbeiten</span>
+    </div>
+
+    <p class="note" id="exampleNote" hidden>Ausgefüllt mit den Werten vom Wiegeschein Nr. 100120 (24.09.2026) als Beispiel. Hektar eintragen und speichern, oder „Neu“ für eine leere Fuhre.</p>
+
+    <form id="form" class="stack" novalidate>
+      <div class="slip">
+        <div class="photo">
+          <div class="thumb" id="thumb">kein Foto</div>
+          <div class="stack" style="gap:8px">
+            <label class="btn btn-mais" for="foto">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+              Wiegeschein fotografieren
+              <input type="file" id="foto" accept="image/*" capture="environment">
+            </label>
+            <div class="row" style="gap:6px">
+              <button type="button" class="btn-sm" id="btnOcr" disabled>Werte aus Foto lesen</button>
+              <button type="button" class="btn-sm btn-ghost" id="btnFotoWeg" hidden>Foto entfernen</button>
+            </div>
+            <div id="ocrStatus"></div>
+          </div>
+        </div>
+
+        <div class="slip-head">
+          <b>Wiegeschein</b>
+          <span>Wareneingang Mais</span>
+        </div>
+
+        <div class="grid">
+          <label class="f">Datum<input type="date" id="datum" required></label>
+          <label class="f">Wa.-Nr.<input type="text" id="waNr" inputmode="numeric" autocomplete="off" placeholder="100120"></label>
+          <label class="f"><span>Wiegung 1 <span class="u">kg brutto</span></span><input type="text" id="w1" inputmode="decimal" autocomplete="off" placeholder="43820"></label>
+          <label class="f"><span>Wiegung 2 <span class="u">kg leer</span></span><input type="text" id="w2" inputmode="decimal" autocomplete="off" placeholder="15840"></label>
+          <label class="f"><span>Wareneingang <span class="u">kg netto</span></span><input type="text" id="netto" class="calc" inputmode="decimal" autocomplete="off" placeholder="27980"></label>
+          <label class="f"><span>Feuchtigkeit <span class="u">%</span></span><input type="text" id="feuchte" inputmode="decimal" autocomplete="off" placeholder="24,7"></label>
+          <label class="f"><span>Abzug <span class="u">Bruchkorn/Besatz %</span></span><input type="text" id="abzug" inputmode="decimal" autocomplete="off" placeholder="0,6"></label>
+          <label class="f">Kennzeichen<input type="text" id="kennzeichen" autocomplete="off" placeholder="RI 737 GB"></label>
+          <div class="hint full" id="nettoHint" hidden></div>
+        </div>
+      </div>
+
+      <div class="ha-box stack" style="gap:12px">
+        <div class="grid">
+          <label class="f">Feld
+            <select id="feld"></select>
+          </label>
+          <label class="f"><span>Hektar auf dieser Fuhre <span class="u">ha</span></span>
+            <input type="text" id="ha" inputmode="decimal" autocomplete="off" placeholder="z. B. 1,85">
+          </label>
+        </div>
+        <div class="row" id="newFieldRow" hidden>
+          <input type="text" id="newFieldName" placeholder="Name des Feldes, z. B. Pirath Süd" style="flex:1 1 200px">
+          <button type="button" class="btn-sm" id="btnNewFieldOk">Anlegen</button>
+        </div>
+        <div class="grid">
+          <label class="f"><span>Sorte <span class="u">optional</span></span><input type="text" id="sorte" autocomplete="off"></label>
+          <label class="f"><span>Notiz <span class="u">optional</span></span><input type="text" id="notiz" autocomplete="off"></label>
+        </div>
+      </div>
+
+      <div class="result" aria-live="polite">
+        <span class="eyebrow">Trockenmasseertrag</span>
+        <div class="hero-num"><span class="v" id="rTmHa">–</span><span class="u">t TM / ha</span></div>
+        <dl class="kv">
+          <div><dt>Trockenmasse gesamt</dt><dd id="rTm">–</dd></div>
+          <div><dt id="rStdLabel">Ware 14 % / ha</dt><dd id="rStdHa">–</dd></div>
+          <div><dt>Nassware / ha</dt><dd id="rNassHa">–</dd></div>
+        </dl>
+        <div class="formula" id="rFormula"></div>
+      </div>
+
+      <div class="row">
+        <button type="submit" class="btn-primary" id="btnSave" style="flex:1 1 180px">Fuhre speichern</button>
+        <button type="button" id="btnReset">Neu</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ======================= VERLAUF ======================= -->
+  <section id="view-verlauf" class="stack" hidden aria-labelledby="h-verlauf">
+    <h2 id="h-verlauf">Verlauf</h2>
+    <div class="chips" id="yearChipsV" role="group" aria-label="Erntejahr"></div>
+    <div class="summary" id="seasonSummary"></div>
+    <div class="panel"><ul class="timeline" id="timeline"></ul></div>
+  </section>
+
+  <!-- ======================= FELDER ======================= -->
+  <section id="view-felder" class="stack" hidden aria-labelledby="h-felder">
+    <h2 id="h-felder">Felder</h2>
+    <p class="note">Ertrag je Feld über alle Erntejahre. Pro Feld zählt die Summe der Trockenmasse geteilt durch die Summe der eingetragenen Hektar aller Fuhren.</p>
+    <div class="stack" id="fieldCards"></div>
+    <div class="row">
+      <input type="text" id="addFieldName" placeholder="Neues Feld" style="flex:1 1 160px">
+      <input type="text" id="addFieldArea" inputmode="decimal" placeholder="Fläche ha" style="flex:0 1 120px">
+      <button type="button" id="btnAddField">Feld anlegen</button>
+    </div>
+
+    <hr class="sep">
+    <h3>Einstellungen</h3>
+    <div class="grid">
+      <label class="f">Kundennummer bei der Genossenschaft<input type="text" id="setKunde" inputmode="numeric" placeholder="10410"></label>
+      <label class="f"><span>Bezugsfeuchte Handelsware <span class="u">%</span></span><input type="text" id="setStd" inputmode="decimal" placeholder="14"></label>
+      <label class="f full" style="flex-direction:row;align-items:center;gap:10px;font-size:13px">
+        <input type="checkbox" id="setAbzug" style="width:22px;min-height:22px;height:22px">
+        Abzug für Bruchkorn und Besatz vor der Trockenmasse-Berechnung vom Nettogewicht abziehen
+      </label>
+    </div>
+
+    <hr class="sep">
+    <h3>Daten sichern</h3>
+    <p class="note">Die Daten liegen nur auf diesem Gerät. Die Sicherung (JSON, mit Fotos) lässt sich auf einem anderen Gerät wieder einlesen. Die Tabelle (CSV) öffnet Excel.</p>
+    <div class="row">
+      <button type="button" id="btnCsv">Tabelle (CSV)</button>
+      <button type="button" id="btnJson">Sicherung (JSON)</button>
+      <label class="btn" for="importFile">Sicherung einlesen<input type="file" id="importFile" accept="application/json,.json"></label>
+    </div>
+  </section>
+</div>
+
+<nav class="tabs" aria-label="Bereiche">
+  <div class="inner" role="tablist">
+    <button type="button" role="tab" data-tab="erfassen" aria-selected="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Erfassen</button>
+    <button type="button" role="tab" data-tab="verlauf" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h13"/></svg>Verlauf</button>
+    <button type="button" role="tab" data-tab="felder" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 20l5-14 4 10 3-6 6 10z"/></svg>Felder</button>
+  </div>
+</nav>
+
+<dialog id="dlg"><div class="dlg" id="dlgBody"></div></dialog>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+"use strict";
+/* ------------------------------------------------------------------
+   Maisertrag Reding – Prototyp
+   Daten: IndexedDB im Browser (kein Login). Datenmodell mit schema-Version
+   und kundeNr, damit ein späterer Login/Sync die Datensätze übernehmen kann.
+------------------------------------------------------------------- */
+
+const $ = (id) => document.getElementById(id);
+const NF = (d) => new Intl.NumberFormat("de-AT", { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmt = (v, d = 1) => (v == null || !isFinite(v)) ? "–" : NF(d).format(v);
+const num = (s) => {
+  if (s == null) return null;
+  const t = String(s).trim().replace(/\s/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
+  if (t === "") return null;
+  const v = Number(t);
+  return isFinite(v) ? v : null;
+};
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const today = () => new Date().toISOString().slice(0, 10);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ---------------- Speicher: IndexedDB mit Fallback im Arbeitsspeicher ---------------- */
+const Store = (() => {
+  let dbp = null;
+  const mem = { lieferungen: new Map(), felder: new Map(), meta: new Map() };
+  let volatile = false;
+  function open() {
+    if (dbp) return dbp;
+    dbp = new Promise((resolve) => {
+      let req;
+      try { req = indexedDB.open("maisertrag-reding", 1); } catch (e) { volatile = true; resolve(null); return; }
+      req.onupgradeneeded = () => {
+        const d = req.result;
+        d.createObjectStore("lieferungen", { keyPath: "id" });
+        d.createObjectStore("felder", { keyPath: "id" });
+        d.createObjectStore("meta");
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => { volatile = true; resolve(null); };
+      req.onblocked = () => { volatile = true; resolve(null); };
+    });
+    return dbp;
+  }
+  async function tx(store, mode, fn) {
+    const db = await open();
+    if (!db) return fn(null, mem[store]);
+    return new Promise((resolve, reject) => {
+      try {
+        const t = db.transaction(store, mode);
+        const s = t.objectStore(store);
+        let out;
+        Promise.resolve(fn(s, null)).then((r) => { out = r; });
+        t.oncomplete = () => resolve(out);
+        t.onerror = () => reject(t.error);
+        t.onabort = () => reject(t.error);
+      } catch (e) { reject(e); }
+    });
+  }
+  const req2p = (r) => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  return {
+    get isVolatile() { return volatile; },
+    open,
+    all: (store) => tx(store, "readonly", (s, m) => s ? req2p(s.getAll()) : [...m.values()]),
+    put: (store, val, key) => tx(store, "readwrite", (s, m) => { if (s) { key !== undefined ? s.put(val, key) : s.put(val); } else m.set(key !== undefined ? key : val.id, val); }),
+    del: (store, key) => tx(store, "readwrite", (s, m) => { if (s) s.delete(key); else m.delete(key); }),
+    get: (store, key) => tx(store, "readonly", (s, m) => s ? req2p(s.get(key)) : m.get(key)),
+  };
+})();
+
+/* ---------------- Zustand ---------------- */
+const state = {
+  lieferungen: [],
+  felder: [],
+  settings: { kundeNr: "", stdFeuchte: 14, abzugAnwenden: true },
+  year: null,
+  editId: null,
+  foto: null,          // Blob des aktuellen Formulars
+  fotoUrl: null,
+  nettoManual: false,
+};
+
+/* ---------------- Berechnung ----------------
+   netto      = Wiegung 1 − Wiegung 2 (oder Wareneingang vom Schein)
+   bereinigt  = netto × (1 − Abzug Bruchkorn/Besatz %)  (abschaltbar)
+   TM         = bereinigt × (1 − Feuchte %)
+   Ware 14 %  = TM ÷ (1 − 14 %)
+   je ha      = Wert ÷ Hektar der Fuhre
+------------------------------------------------ */
+function calc(r, s = state.settings) {
+  const netto = r.netto != null ? r.netto : (r.w1 != null && r.w2 != null ? r.w1 - r.w2 : null);
+  if (netto == null || netto <= 0) return null;
+  const abzugF = (s.abzugAnwenden && r.abzug) ? (1 - r.abzug / 100) : 1;
+  const bereinigt = netto * abzugF;
+  const tm = r.feuchte != null ? bereinigt * (1 - r.feuchte / 100) : null;
+  const std = tm != null ? tm / (1 - (s.stdFeuchte ?? 14) / 100) : null;
+  const ha = r.ha && r.ha > 0 ? r.ha : null;
+  return {
+    netto, bereinigt, tm, std, ha,
+    tmHa: tm != null && ha ? tm / ha : null,
+    stdHa: std != null && ha ? std / ha : null,
+    nassHa: ha ? netto / ha : null,
+  };
+}
+
+function aggregate(list) {
+  let tm = 0, ha = 0, netto = 0, std = 0, fw = 0, n = 0, haTm = 0, tmWithHa = 0;
+  for (const r of list) {
+    const c = calc(r); if (!c) continue;
+    n++; netto += c.netto;
+    if (c.tm != null) { tm += c.tm; std += c.std; fw += (r.feuchte || 0) * c.netto; }
+    if (c.ha && c.tm != null) { haTm += c.ha; tmWithHa += c.tm; }
+    if (c.ha) ha += c.ha;
+  }
+  return { n, tm, ha, netto, std, feuchte: netto ? fw / netto : null, tmHa: haTm ? tmWithHa / haTm : null, stdHa: haTm ? (tmWithHa / (1 - state.settings.stdFeuchte / 100)) / haTm : null };
+}
+
+/* ---------------- Formular ---------------- */
+const F = ["datum", "waNr", "w1", "w2", "netto", "feuchte", "abzug", "kennzeichen", "ha", "sorte", "notiz"];
+function readForm() {
+  const v = (id) => $(id).value;
+  return {
+    datum: v("datum") || today(),
+    waNr: v("waNr").trim(),
+    w1: num(v("w1")), w2: num(v("w2")), netto: num(v("netto")),
+    feuchte: num(v("feuchte")), abzug: num(v("abzug")),
+    kennzeichen: v("kennzeichen").trim().toUpperCase(),
+    feldId: $("feld").value && $("feld").value !== "__neu" ? $("feld").value : null,
+    ha: num(v("ha")),
+    sorte: v("sorte").trim(), notiz: v("notiz").trim(),
+  };
+}
+const toField = (v, d) => v == null ? "" : (d == null ? String(v) : String(v).replace(".", ","));
+function fillForm(r) {
+  $("datum").value = r.datum || today();
+  $("waNr").value = r.waNr || "";
+  $("w1").value = toField(r.w1, 0); $("w2").value = toField(r.w2, 0); $("netto").value = toField(r.netto, 0);
+  $("feuchte").value = toField(r.feuchte, 1); $("abzug").value = toField(r.abzug, 1);
+  $("kennzeichen").value = r.kennzeichen || "";
+  $("ha").value = toField(r.ha, 2);
+  $("sorte").value = r.sorte || ""; $("notiz").value = r.notiz || "";
+  renderFieldSelect(r.feldId || "");
+  state.nettoManual = r.netto != null && !(r.w1 != null && r.w2 != null && r.w1 - r.w2 === r.netto);
+  updateResult();
+}
+function setFoto(blob) {
+  if (state.fotoUrl) URL.revokeObjectURL(state.fotoUrl);
+  state.foto = blob || null;
+  state.fotoUrl = blob ? URL.createObjectURL(blob) : null;
+  $("thumb").innerHTML = blob ? `<img alt="Foto des Wiegescheins" src="${state.fotoUrl}">` : "kein Foto";
+  $("btnOcr").disabled = !blob;
+  $("btnFotoWeg").hidden = !blob;
+  $("ocrStatus").textContent = "";
+}
+function resetForm(example) {
+  state.editId = null; $("editFlag").hidden = true; $("btnSave").textContent = "Fuhre speichern";
+  setFoto(null);
+  const lastFeld = safeLS("get", "letztesFeld") || "";
+  if (example) {
+    fillForm({ datum: "2026-09-24", waNr: "100120", w1: 43820, w2: 15840, netto: 27980, feuchte: 24.7, abzug: 0.6, kennzeichen: "RI 737 GB", feldId: lastFeld });
+  } else {
+    fillForm({ datum: today(), feldId: lastFeld, kennzeichen: safeLS("get", "letztesKennzeichen") || "" });
+  }
+  $("exampleNote").hidden = !example;
+}
+
+function updateResult() {
+  const r = readForm();
+  // Netto automatisch aus den Wiegungen, solange nicht von Hand geändert
+  if (!state.nettoManual && r.w1 != null && r.w2 != null && r.w1 > r.w2) {
+    $("netto").value = String(r.w1 - r.w2); r.netto = r.w1 - r.w2;
+  }
+  const hint = $("nettoHint");
+  if (r.netto != null && r.w1 != null && r.w2 != null && Math.abs(r.w1 - r.w2 - r.netto) > 0.5) {
+    hint.hidden = false; hint.textContent = `Wiegung 1 − Wiegung 2 = ${fmt(r.w1 - r.w2, 0)} kg, eingetragen sind ${fmt(r.netto, 0)} kg. Bitte prüfen.`;
+  } else hint.hidden = true;
+
+  const c = calc(r);
+  const s = state.settings;
+  $("rStdLabel").textContent = `Ware ${fmt(s.stdFeuchte, 0)} % / ha`;
+  const v = $("rTmHa");
+  if (c && c.tmHa != null) { v.textContent = fmt(c.tmHa / 1000, 2); v.classList.remove("empty"); }
+  else { v.textContent = c && c.tm != null ? "Hektar fehlt" : "–"; v.classList.add("empty"); }
+  $("rTm").textContent = c && c.tm != null ? fmt(c.tm / 1000, 2) + " t" : "–";
+  $("rStdHa").textContent = c && c.stdHa != null ? fmt(c.stdHa / 1000, 2) + " t" : "–";
+  $("rNassHa").textContent = c && c.nassHa != null ? fmt(c.nassHa / 1000, 2) + " t" : "–";
+  if (c && c.tm != null) {
+    const ab = s.abzugAnwenden && r.abzug ? ` × (1 − ${fmt(r.abzug, 1)} % Bruchkorn/Besatz)` : "";
+    $("rFormula").textContent = `${fmt(c.netto, 0)} kg${ab} × (1 − ${fmt(r.feuchte, 1)} % Feuchte) = ${fmt(c.tm, 0)} kg TM` + (c.ha ? ` ÷ ${fmt(c.ha, 2)} ha` : "");
+  } else {
+    $("rFormula").textContent = "Nettogewicht und Feuchtigkeit eintragen.";
+  }
+}
+
+/* ---------------- Felder ---------------- */
+function fieldName(id) { const f = state.felder.find((x) => x.id === id); return f ? f.name : "ohne Feld"; }
+function renderFieldSelect(sel) {
+  const s = $("feld");
+  const opts = [`<option value="">– Feld wählen –</option>`]
+    .concat([...state.felder].sort((a, b) => a.name.localeCompare(b.name, "de")).map((f) => `<option value="${esc(f.id)}">${esc(f.name)}${f.flaeche ? ` (${fmt(f.flaeche, 2)} ha)` : ""}</option>`))
+    .concat([`<option value="__neu">+ neues Feld anlegen …</option>`]);
+  s.innerHTML = opts.join("");
+  s.value = state.felder.some((f) => f.id === sel) ? sel : "";
+  $("newFieldRow").hidden = true;
+}
+async function addField(name, flaeche) {
+  name = (name || "").trim();
+  if (!name) { toast("Bitte einen Feldnamen eingeben."); return null; }
+  if (state.felder.some((f) => f.name.toLowerCase() === name.toLowerCase())) { toast(`„${name}“ gibt es schon.`); return null; }
+  const f = { id: uid(), name, flaeche: flaeche ?? null, angelegt: new Date().toISOString() };
+  await Store.put("felder", f); state.felder.push(f);
+  return f;
+}
+
+/* ---------------- Foto verkleinern ---------------- */
+function shrinkImage(file, max = 1600, q = 0.82) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob((b) => resolve(b || file), "image/jpeg", q);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+/* ---------------- Texterkennung (Tesseract.js, lädt erst bei Bedarf) ---------------- */
+function loadScript(src) {
+  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+}
+function parseSlip(text) {
+  const t = text.replace(/[|]/g, " ");
+  const out = {};
+  const wa = t.match(/Wa\.?\s*-?\s*Nr\.?\s*[:.]?\s*(\d{5,7})/i); if (wa) out.waNr = wa[1];
+  const dt = t.match(/am\s+(\d{1,2})\.(\d{1,2})\.(\d{4})/i) || t.match(/(\d{2})\.(\d{2})\.(20\d{2})/);
+  if (dt) out.datum = `${dt[3]}-${dt[2].padStart(2, "0")}-${dt[1].padStart(2, "0")}`;
+  const w1 = t.match(/Wiegung\s*1[^\n]*?(\d{4,6})\s*kg/i); if (w1) out.w1 = +w1[1];
+  const w2 = t.match(/Wiegung\s*2[^\n]*?(\d{4,6})\s*kg/i); if (w2) out.w2 = +w2[1];
+  const we = t.match(/Wareneingang[^\n]*?(\d{4,6})\s*kg/i); if (we) out.netto = +we[1];
+  if (out.w1 == null || out.w2 == null) {
+    const kgs = [...t.matchAll(/(\d{4,6})\s*kg/gi)].map((m) => +m[1]);
+    if (kgs.length >= 3 && out.w1 == null) { out.w1 = kgs[0]; out.w2 = kgs[1]; out.netto = out.netto ?? kgs[2]; }
+  }
+  const fe = t.match(/Feuchtigkeit\s*[:.]?\s*(\d{1,2})\s*[,.]\s*(\d)/i); if (fe) out.feuchte = +(fe[1] + "." + fe[2]);
+  const ab = t.match(/Abzug\s*[:.]?\s*(\d{1,2})\s*[,.]\s*(\d)/i); if (ab) out.abzug = +(ab[1] + "." + ab[2]);
+  const kz = t.match(/\b([A-Z]{1,3})\s?[- ]?\s?(\d{1,5})\s?([A-Z]{1,3})\b(?![^\n]*kg)/); if (kz && /Kennzeichen/i.test(t)) out.kennzeichen = `${kz[1]} ${kz[2]} ${kz[3]}`;
+  return out;
+}
+async function runOcr() {
+  if (!state.foto) return;
+  const st = $("ocrStatus"); const btn = $("btnOcr");
+  btn.disabled = true;
+  st.textContent = "Texterkennung wird geladen …";
+  try {
+    if (!window.Tesseract) await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js");
+    const worker = await Promise.race([
+      window.Tesseract.createWorker("deu", 1, { logger: (m) => { if (m.status === "recognizing text") st.textContent = `Lese Schein … ${Math.round(m.progress * 100)} %`; } }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 45000)),
+    ]);
+    const { data } = await worker.recognize(state.foto);
+    await worker.terminate();
+    const found = parseSlip(data.text || "");
+    const keys = Object.keys(found);
+    if (!keys.length) { st.textContent = "Keine Werte erkannt. Bitte abtippen, Foto bleibt gespeichert."; return; }
+    const cur = readForm();
+    const merged = { ...cur, ...found };
+    if (found.w1 != null && found.w2 != null) state.nettoManual = false;
+    fillForm({ ...merged, feldId: cur.feldId });
+    if (found.netto != null && found.w1 != null && found.w2 != null && found.w1 - found.w2 !== found.netto) state.nettoManual = true;
+    updateResult();
+    $("exampleNote").hidden = true;
+    st.textContent = `${keys.length} Werte übernommen. Bitte mit dem Schein vergleichen.`;
+  } catch (e) {
+    st.textContent = "Texterkennung ist hier nicht verfügbar. Bitte die Werte abtippen, das Foto wird trotzdem gespeichert.";
+  } finally { btn.disabled = !state.foto; }
+}
+
+/* ---------------- Speichern / Löschen ---------------- */
+async function saveForm(ev) {
+  ev.preventDefault();
+  const r = readForm();
+  const c = calc(r);
+  if (!c) { toast("Nettogewicht fehlt (Wareneingang oder beide Wiegungen)."); $("w1").focus(); return; }
+  if (r.feuchte == null || r.feuchte < 5 || r.feuchte > 45) { toast("Feuchtigkeit zwischen 5 und 45 % eintragen."); $("feuchte").focus(); return; }
+  if (r.ha != null && (r.ha <= 0 || r.ha > 50)) { toast("Hektar zwischen 0 und 50 eintragen."); $("ha").focus(); return; }
+  const prev = state.editId ? state.lieferungen.find((x) => x.id === state.editId) : null;
+  const rec = {
+    schema: 1,
+    id: prev ? prev.id : uid(),
+    erstellt: prev ? prev.erstellt : new Date().toISOString(),
+    geaendert: new Date().toISOString(),
+    kundeNr: state.settings.kundeNr || null,
+    genossenschaft: "Trocknungsgenossenschaft Reding eG",
+    frucht: "Körnermais",
+    jahr: +r.datum.slice(0, 4),
+    ...r,
+    foto: state.foto || null,
+  };
+  try { await Store.put("lieferungen", rec); }
+  catch (e) { toast("Speichern fehlgeschlagen. Ist der Speicher des Browsers voll?"); return; }
+  const i = state.lieferungen.findIndex((x) => x.id === rec.id);
+  if (i >= 0) state.lieferungen[i] = rec; else state.lieferungen.push(rec);
+  if (rec.feldId) safeLS("set", "letztesFeld", rec.feldId);
+  if (rec.kennzeichen) safeLS("set", "letztesKennzeichen", rec.kennzeichen);
+  state.year = rec.jahr;
+  toast(prev ? "Fuhre geändert" : (c.tmHa != null ? `Gespeichert: ${fmt(c.tmHa / 1000, 2)} t TM/ha` : "Gespeichert (ohne Hektar)"));
+  resetForm(false);
+  renderAll();
+  switchTab("verlauf");
+}
+async function deleteRec(id) {
+  await Store.del("lieferungen", id);
+  state.lieferungen = state.lieferungen.filter((x) => x.id !== id);
+  $("dlg").close(); renderAll(); toast("Fuhre gelöscht");
+}
+
+/* ---------------- Verlauf ---------------- */
+function years() {
+  const ys = [...new Set(state.lieferungen.map((r) => r.jahr))].sort((a, b) => b - a);
+  return ys;
+}
+function renderYearChips() {
+  const ys = years();
+  if (!ys.length) { $("yearChipsV").innerHTML = ""; return; }
+  if (!ys.includes(state.year)) state.year = ys[0];
+  $("yearChipsV").innerHTML = ys.map((y) => `<button type="button" class="chip" aria-pressed="${y === state.year}" data-year="${y}">Ernte ${y}</button>`).join("");
+}
+function renderVerlauf() {
+  renderYearChips();
+  const list = state.lieferungen.filter((r) => r.jahr === state.year)
+    .sort((a, b) => (b.datum + b.erstellt).localeCompare(a.datum + a.erstellt));
+  const a = aggregate(list);
+  $("seasonSummary").innerHTML = state.lieferungen.length ? `
+    <div><span>Ø t TM / ha</span><b class="mais">${a.tmHa != null ? fmt(a.tmHa / 1000, 2) : "–"}</b></div>
+    <div><span>Trockenmasse</span><b>${fmt(a.tm / 1000, 1)} t</b></div>
+    <div><span>Hektar</span><b>${fmt(a.ha, 2)}</b></div>
+    <div><span>Fuhren · Ø Feuchte</span><b>${a.n} · ${a.feuchte != null ? fmt(a.feuchte, 1) + " %" : "–"}</b></div>` : "";
+  $("seasonSummary").hidden = !state.lieferungen.length;
+  if (!list.length) {
+    $("timeline").innerHTML = `<li class="empty">Noch keine Fuhre gespeichert. Unter „Erfassen“ den Wiegeschein fotografieren, Hektar eintragen und speichern.</li>`;
+    return;
+  }
+  const maxHa = Math.max(...list.map((r) => { const c = calc(r); return c && c.tmHa ? c.tmHa : 0; }), 1);
+  $("timeline").innerHTML = list.map((r) => {
+    const c = calc(r) || {};
+    const d = new Date(r.datum + "T12:00:00");
+    const pct = c.tmHa ? Math.round((c.tmHa / maxHa) * 100) : 0;
+    return `<li><button type="button" class="tl" data-id="${esc(r.id)}">
+      <span class="d">${d.toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit" })}<small>${r.waNr ? "Nr. " + esc(r.waNr) : ""}</small></span>
+      <span class="m"><b>${esc(fieldName(r.feldId))}</b>
+        <span>${fmt(c.netto / 1000, 2)} t nass · ${fmt(r.feuchte, 1)} % · ${r.ha ? fmt(r.ha, 2) + " ha" : "ohne ha"}${r.foto ? " · Foto" : ""}</span>
+        <span class="bar" aria-hidden="true"><i style="width:${pct}%"></i></span></span>
+      <span class="y">${c.tmHa != null ? fmt(c.tmHa / 1000, 2) : "–"}<small>t TM/ha</small></span>
+    </button></li>`;
+  }).join("");
+}
+
+function openDetail(id) {
+  const r = state.lieferungen.find((x) => x.id === id); if (!r) return;
+  const c = calc(r) || {};
+  const url = r.foto ? URL.createObjectURL(r.foto) : null;
+  const d = new Date(r.datum + "T12:00:00").toLocaleDateString("de-AT", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+  $("dlgBody").innerHTML = `
+    <div class="row" style="justify-content:space-between"><h2>${esc(fieldName(r.feldId))}</h2><button type="button" class="btn-sm btn-ghost" data-act="close">Schließen</button></div>
+    <span class="eyebrow">${d}${r.waNr ? " · Wa.-Nr. " + esc(r.waNr) : ""}${r.kennzeichen ? " · " + esc(r.kennzeichen) : ""}</span>
+    <div class="hero-num"><span class="v">${c.tmHa != null ? fmt(c.tmHa / 1000, 2) : "–"}</span><span class="u">t TM / ha</span></div>
+    <dl class="kv">
+      <div><dt>Wareneingang</dt><dd>${fmt(c.netto, 0)} kg</dd></div>
+      <div><dt>Feuchtigkeit</dt><dd>${fmt(r.feuchte, 1)} %</dd></div>
+      <div><dt>Bruchkorn/Besatz</dt><dd>${r.abzug != null ? fmt(r.abzug, 1) + " %" : "–"}</dd></div>
+      <div><dt>Hektar</dt><dd>${r.ha ? fmt(r.ha, 2) : "–"}</dd></div>
+      <div><dt>Trockenmasse</dt><dd>${fmt(c.tm / 1000, 2)} t</dd></div>
+      <div><dt>Ware ${fmt(state.settings.stdFeuchte, 0)} % / ha</dt><dd>${c.stdHa != null ? fmt(c.stdHa / 1000, 2) + " t" : "–"}</dd></div>
+    </dl>
+    ${r.sorte || r.notiz ? `<p class="note">${r.sorte ? "Sorte: " + esc(r.sorte) : ""}${r.sorte && r.notiz ? " · " : ""}${esc(r.notiz)}</p>` : ""}
+    ${url ? `<img src="${url}" alt="Foto des Wiegescheins">` : `<p class="note">Kein Foto gespeichert.</p>`}
+    <div class="row"><button type="button" data-act="edit" style="flex:1">Bearbeiten</button><button type="button" class="btn-danger" data-act="del">Löschen</button></div>
+    <div class="confirm" id="confirmDel" hidden>Diese Fuhre samt Foto endgültig löschen?
+      <div class="row"><button type="button" class="btn-danger" data-act="del-yes">Ja, löschen</button><button type="button" data-act="del-no">Abbrechen</button></div></div>`;
+  const dlg = $("dlg");
+  dlg.onclick = (e) => {
+    const a = e.target.closest("[data-act]"); if (!a) { if (e.target === dlg) dlg.close(); return; }
+    const act = a.dataset.act;
+    if (act === "close") dlg.close();
+    if (act === "del") $("confirmDel").hidden = false;
+    if (act === "del-no") $("confirmDel").hidden = true;
+    if (act === "del-yes") deleteRec(r.id);
+    if (act === "edit") {
+      dlg.close(); switchTab("erfassen");
+      state.editId = r.id; fillForm(r); setFoto(r.foto || null);
+      $("editFlag").hidden = false; $("exampleNote").hidden = true; $("btnSave").textContent = "Änderung speichern";
+      window.scrollTo({ top: 0 });
+    }
+  };
+  dlg.onclose = () => { if (url) URL.revokeObjectURL(url); };
+  if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+}
+
+/* ---------------- Felder-Ansicht ---------------- */
+function renderFelder() {
+  const byField = new Map();
+  for (const r of state.lieferungen) {
+    const k = r.feldId || "";
+    if (!byField.has(k)) byField.set(k, []);
+    byField.get(k).push(r);
+  }
+  const ids = [...state.felder].sort((a, b) => a.name.localeCompare(b.name, "de")).map((f) => f.id);
+  if (byField.has("")) ids.push("");
+  if (!ids.length) { $("fieldCards").innerHTML = `<div class="empty panel">Noch keine Felder. Unten anlegen oder beim Erfassen „+ neues Feld“ wählen.</div>`; return; }
+  $("fieldCards").innerHTML = ids.map((id) => {
+    const f = state.felder.find((x) => x.id === id);
+    const list = byField.get(id) || [];
+    const ys = [...new Set(list.map((r) => r.jahr))].sort((a, b) => b - a);
+    const rows = ys.map((y, i) => {
+      const a = aggregate(list.filter((r) => r.jahr === y));
+      const prev = ys[i + 1] != null ? aggregate(list.filter((r) => r.jahr === ys[i + 1])) : null;
+      let delta = "";
+      if (prev && prev.tmHa && a.tmHa) {
+        const dd = (a.tmHa - prev.tmHa) / prev.tmHa * 100;
+        delta = `<span class="${dd >= 0 ? "delta-up" : "delta-down"}">${dd >= 0 ? "+" : "−"}${fmt(Math.abs(dd), 0)} %</span>`;
+      }
+      return `<tr><td>${y}</td><td>${a.n}</td><td>${fmt(a.ha, 2)}</td><td>${fmt(a.tm / 1000, 1)}</td><td class="hi">${a.tmHa != null ? fmt(a.tmHa / 1000, 2) : "–"}</td><td>${a.feuchte != null ? fmt(a.feuchte, 1) : "–"}</td><td>${delta}</td></tr>`;
+    }).join("");
+    const deletable = f && !list.length;
+    return `<article class="field-card">
+      <header><h3>${esc(f ? f.name : "Ohne Feld")}</h3><span>${f && f.flaeche ? fmt(f.flaeche, 2) + " ha Fläche · " : ""}${list.length} Fuhren</span></header>
+      ${rows ? `<div class="tbl-wrap"><table><thead><tr><th>Ernte</th><th>Fuhren</th><th>ha</th><th>t TM</th><th>t TM/ha</th><th>Ø Feuchte %</th><th>zum Vorjahr</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="note">Noch keine Fuhre auf diesem Feld.</p>`}
+      ${deletable ? `<div><button type="button" class="btn-sm btn-ghost" data-delfield="${esc(f.id)}">Feld entfernen</button></div>` : ""}
+    </article>`;
+  }).join("");
+}
+
+/* ---------------- Export / Import ---------------- */
+async function offerFile(filename, data, mime) {
+  try {
+    if (window.claude && window.claude.use) {
+      const dl = await window.claude.use("downloads");
+      if (dl) { await dl.save({ filename, data: new Blob([data], { type: mime }) }); return; }
+    }
+  } catch (e) { if (e && e.code === "declined") return; }
+  try {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([data], { type: mime }));
+    a.download = filename; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  } catch (e) { toast("Herunterladen ist hier nicht möglich."); }
+}
+function csvCell(v) { const s = String(v ?? ""); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }
+async function exportCsv() {
+  if (!state.lieferungen.length) { toast("Noch nichts gespeichert."); return; }
+  const n = (v, d) => v == null || !isFinite(v) ? "" : v.toFixed(d).replace(".", ",");
+  const head = ["Datum", "Ernte", "Wa.-Nr.", "Kennzeichen", "Feld", "Hektar", "Wiegung 1 kg", "Wiegung 2 kg", "Netto kg", "Feuchte %", "Abzug Bruchkorn/Besatz %", "TM kg", "t TM/ha", `Ware ${state.settings.stdFeuchte}% t/ha`, "Sorte", "Notiz", "Kunde"];
+  const rows = [...state.lieferungen].sort((a, b) => a.datum.localeCompare(b.datum)).map((r) => {
+    const c = calc(r) || {};
+    return [r.datum, r.jahr, r.waNr, r.kennzeichen, fieldName(r.feldId), n(r.ha, 2), n(r.w1, 0), n(r.w2, 0), n(c.netto, 0), n(r.feuchte, 1), n(r.abzug, 1), n(c.tm, 0), n(c.tmHa != null ? c.tmHa / 1000 : null, 2), n(c.stdHa != null ? c.stdHa / 1000 : null, 2), r.sorte, r.notiz, r.kundeNr].map(csvCell).join(";");
+  });
+  await offerFile(`maisertrag-${today()}.csv`, "﻿" + [head.join(";"), ...rows].join("\r\n"), "text/csv");
+}
+const blobToDataUrl = (b) => new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => res(null); fr.readAsDataURL(b); });
+async function exportJson() {
+  const lief = [];
+  for (const r of state.lieferungen) lief.push({ ...r, foto: r.foto ? await blobToDataUrl(r.foto) : null });
+  const payload = { app: "maisertrag-reding", schema: 1, exportiert: new Date().toISOString(), settings: state.settings, felder: state.felder, lieferungen: lief };
+  await offerFile(`maisertrag-sicherung-${today()}.json`, JSON.stringify(payload), "application/json");
+}
+async function importJson(file) {
+  try {
+    const data = JSON.parse(await file.text());
+    if (data.app !== "maisertrag-reding" || !Array.isArray(data.lieferungen)) throw new Error("fmt");
+    for (const f of data.felder || []) { if (!state.felder.some((x) => x.id === f.id)) { await Store.put("felder", f); state.felder.push(f); } }
+    let n = 0;
+    for (const r of data.lieferungen) {
+      const foto = r.foto ? await (await fetch(r.foto)).blob().catch(() => null) : null;
+      const rec = { ...r, foto };
+      await Store.put("lieferungen", rec);
+      const i = state.lieferungen.findIndex((x) => x.id === rec.id);
+      if (i >= 0) state.lieferungen[i] = rec; else { state.lieferungen.push(rec); n++; }
+    }
+    renderAll(); toast(`${n} neue Fuhren eingelesen`);
+  } catch (e) { toast("Die Datei ist keine Maisertrag-Sicherung."); }
+}
+
+/* ---------------- Einstellungen ---------------- */
+async function saveSettings() {
+  const s = state.settings;
+  s.kundeNr = $("setKunde").value.trim();
+  const std = num($("setStd").value); s.stdFeuchte = std != null && std >= 0 && std < 40 ? std : 14;
+  s.abzugAnwenden = $("setAbzug").checked;
+  await Store.put("meta", s, "settings");
+  renderKunde(); updateResult(); renderVerlauf(); renderFelder();
+}
+function renderKunde() { $("kundeLabel").textContent = state.settings.kundeNr ? `Kunde ${state.settings.kundeNr}` : ""; }
+
+/* ---------------- UI-Helfer ---------------- */
+function safeLS(op, k, v) { try { if (op === "get") return localStorage.getItem("maisertrag." + k); localStorage.setItem("maisertrag." + k, v); } catch (e) { return null; } }
+let toastT;
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2600); }
+function switchTab(name) {
+  document.querySelectorAll("nav.tabs [data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  ["erfassen", "verlauf", "felder"].forEach((v) => { $("view-" + v).hidden = v !== name; });
+  safeLS("set", "tab", name);
+  window.scrollTo({ top: 0 });
+}
+function renderAll() { renderFieldSelect($("feld").value); renderVerlauf(); renderFelder(); }
+
+/* ---------------- Ereignisse ---------------- */
+document.querySelectorAll("nav.tabs [data-tab]").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+$("form").addEventListener("submit", saveForm);
+$("form").addEventListener("input", (e) => {
+  if (e.target.id === "netto") state.nettoManual = e.target.value.trim() !== "";
+  if (["w1", "w2"].includes(e.target.id) && !$("netto").value.trim()) state.nettoManual = false;
+  updateResult();
+});
+$("btnReset").addEventListener("click", () => resetForm(false));
+$("feld").addEventListener("change", (e) => {
+  const neu = e.target.value === "__neu";
+  $("newFieldRow").hidden = !neu;
+  if (neu) $("newFieldName").focus();
+});
+$("btnNewFieldOk").addEventListener("click", async () => {
+  const f = await addField($("newFieldName").value, null);
+  if (f) { $("newFieldName").value = ""; renderFieldSelect(f.id); renderFelder(); toast(`Feld „${f.name}“ angelegt`); }
+});
+$("newFieldName").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("btnNewFieldOk").click(); } });
+$("foto").addEventListener("change", async (e) => {
+  const file = e.target.files && e.target.files[0]; e.target.value = "";
+  if (!file) return;
+  $("ocrStatus").textContent = "Foto wird verkleinert …";
+  setFoto(await shrinkImage(file));
+  $("ocrStatus").textContent = "Foto übernommen. Werte prüfen oder „Werte aus Foto lesen“.";
+});
+$("btnFotoWeg").addEventListener("click", () => setFoto(null));
+$("btnOcr").addEventListener("click", runOcr);
+$("yearChipsV").addEventListener("click", (e) => { const b = e.target.closest("[data-year]"); if (b) { state.year = +b.dataset.year; renderVerlauf(); } });
+$("timeline").addEventListener("click", (e) => { const b = e.target.closest("[data-id]"); if (b) openDetail(b.dataset.id); });
+$("fieldCards").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-delfield]"); if (!b) return;
+  await Store.del("felder", b.dataset.delfield);
+  state.felder = state.felder.filter((f) => f.id !== b.dataset.delfield);
+  renderAll(); toast("Feld entfernt");
+});
+$("btnAddField").addEventListener("click", async () => {
+  const f = await addField($("addFieldName").value, num($("addFieldArea").value));
+  if (f) { $("addFieldName").value = ""; $("addFieldArea").value = ""; renderAll(); toast(`Feld „${f.name}“ angelegt`); }
+});
+["setKunde", "setStd", "setAbzug"].forEach((id) => $(id).addEventListener("change", saveSettings));
+$("btnCsv").addEventListener("click", exportCsv);
+$("btnJson").addEventListener("click", exportJson);
+$("importFile").addEventListener("change", (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) importJson(f); });
+
+/* ---------------- Start ---------------- */
+(async function start() {
+  await Store.open();
+  try {
+    state.lieferungen = (await Store.all("lieferungen")) || [];
+    state.felder = (await Store.all("felder")) || [];
+    const s = await Store.get("meta", "settings");
+    if (s) Object.assign(state.settings, s);
+  } catch (e) { /* leerer Start */ }
+  if (Store.isVolatile) $("storageBanner").hidden = false;
+  $("setKunde").value = state.settings.kundeNr || "";
+  $("setStd").value = String(state.settings.stdFeuchte).replace(".", ",");
+  $("setAbzug").checked = !!state.settings.abzugAnwenden;
+  renderKunde();
+  renderAll();
+  resetForm(state.lieferungen.length === 0);
+  // Offline-Betrieb, nur auf der eigenen Webadresse (nicht in Vorschauen / file://)
+  try { if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {}); } catch (e) {}
+  const t = safeLS("get", "tab");
+  if (t && ["erfassen", "verlauf", "felder"].includes(t)) switchTab(t);
+})();
+</script>
+</body>
+</html>
