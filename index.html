@@ -109,12 +109,8 @@ nav.tabs button[aria-selected="true"] svg{color:var(--mais-ink)}
 
 /* Lieferschein-Formular im Stil des grünen Wiegescheins */
 .slip{background:var(--slip);border:1px solid var(--slip-line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:14px;font-family:var(--f-mono);position:relative}
-.slip-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline;border-bottom:1px solid var(--slip-line);padding-bottom:10px}
-.slip-head b{font:600 14px/1.2 var(--f-mono)}
-.slip-head span{font-size:12px;color:var(--ink-soft)}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .grid .full{grid-column:1/-1}
-@media (max-width:420px){.grid{grid-template-columns:minmax(0,1fr)}}
 label.f{display:flex;flex-direction:column;gap:5px;font:500 12px/1.2 var(--f-mono);color:var(--ink-soft);letter-spacing:.02em}
 label.f .u{color:var(--muted);font-weight:400}
 input,select,textarea{font:500 16px/1.2 var(--f-mono);color:var(--ink);background:var(--surface);border:1px solid var(--slip-line);border-radius:6px;padding:10px 11px;width:100%;min-height:44px;font-variant-numeric:tabular-nums}
@@ -140,7 +136,6 @@ label.btn{position:relative}
 .hero-num .u{font:600 18px/1 var(--f-head);color:var(--ink-soft)}
 .hero-num .v.empty{color:var(--muted);font-size:28px}
 .kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-@media (max-width:420px){.kv{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kv div{display:flex;flex-direction:column;gap:3px;border-top:1px solid var(--line);padding-top:8px}
 .kv dt{font:500 11px/1.2 var(--f-mono);color:var(--muted);letter-spacing:.04em;margin:0}
 .kv dd{margin:0;font:600 18px/1.1 var(--f-mono);font-variant-numeric:tabular-nums}
@@ -198,6 +193,40 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:8px;font:600 14px/1.2 var(--f-ui);z-index:40;max-width:calc(100vw - 32px)}
 .sep{border:0;border-top:1px solid var(--line);margin:4px 0}
 @media (prefers-reduced-motion:no-preference){.result .v{transition:color .2s}}
+.ha-box details.more summary{padding-block:2px;font-size:13px;color:var(--ink-soft)}
+/* Handy: dichter, damit weniger gescrollt werden muss */
+@media (max-width:520px){
+  .wrap{padding-block:0 84px}
+  header.top{padding-block:10px 6px;align-items:center}
+  .brand small{font-size:10px}
+  .brand h1{font-size:22px}
+  .brand .sub{font-size:11.5px;margin-top:1px}
+  h2{font-size:17px}
+  .stack{gap:10px}
+  .note{font-size:12.5px}
+  .slip{padding:10px;gap:10px}
+  .grid{gap:8px}
+  label.f{gap:3px;font-size:11px}
+  input,select,textarea{min-height:40px;padding:7px 9px}
+  .ha-box{padding:10px}
+  .ha-box input{font-size:19px}
+  .photo{grid-template-columns:60px 1fr;gap:10px}
+  .thumb{width:60px;height:76px;font-size:10px;padding:4px}
+  .photo .btn-mais{min-height:42px;padding:9px 10px;font-size:14px}
+  #ocrStatus{font-size:11.5px}
+  .result{padding:12px;gap:8px}
+  .hero-num .v{font-size:40px}
+  .kv{gap:8px}
+  .kv dt{font-size:10.5px}
+  .kv dd{font-size:15px}
+  .formula{font-size:11px}
+  nav.tabs button{min-height:54px}
+  .acct{padding:6px 8px;min-height:40px}
+  .acct-name{font-size:13px}
+  .summary b{font-size:19px}
+  .summary div{padding:10px}
+  .tl{padding:9px 2px;min-height:56px}
+}
 </style>
 </head>
 <body>
@@ -223,7 +252,7 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
       <span class="eyebrow" id="editFlag" hidden>Bearbeiten</span>
     </div>
 
-    <p class="note" id="exampleNote" hidden>Ausgefüllt mit den Werten vom Wiegeschein Nr. 100120 (24.09.2026) als Beispiel. Hektar eintragen und speichern, oder „Neu“ für eine leere Fuhre.</p>
+    <p class="note" id="exampleNote" hidden>Beispiel: Wiegeschein 100120 vom 24.09.2026. Für eine echte Fuhre „Neu“ tippen oder gleich fotografieren.</p>
 
     <form id="form" class="stack" novalidate>
       <div class="slip">
@@ -236,37 +265,32 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
               <input type="file" id="foto" accept="image/*" capture="environment">
             </label>
             <div class="row" style="gap:6px">
-              <button type="button" class="btn-sm" id="btnOcr" disabled>Werte aus Foto lesen</button>
+              <button type="button" class="btn-sm" id="btnOcr" hidden>Erneut lesen</button>
               <button type="button" class="btn-sm btn-ghost" id="btnFotoWeg" hidden>Foto entfernen</button>
             </div>
-            <div id="ocrStatus"></div>
+            <div id="ocrStatus">Die Werte werden nach dem Foto automatisch gelesen.</div>
           </div>
-        </div>
-
-        <div class="slip-head">
-          <b>Wiegeschein</b>
-          <span>Wareneingang Mais</span>
         </div>
 
         <div class="grid">
           <label class="f">Datum<input type="date" id="datum" required></label>
           <label class="f">Wa.-Nr.<input type="text" id="waNr" inputmode="numeric" autocomplete="off" placeholder="100120"></label>
-          <label class="f"><span>Wiegung 1 <span class="u">kg brutto</span></span><input type="text" id="w1" inputmode="decimal" autocomplete="off" placeholder="43820"></label>
-          <label class="f"><span>Wiegung 2 <span class="u">kg leer</span></span><input type="text" id="w2" inputmode="decimal" autocomplete="off" placeholder="15840"></label>
-          <label class="f"><span>Wareneingang <span class="u">kg netto</span></span><input type="text" id="netto" class="calc" inputmode="decimal" autocomplete="off" placeholder="27980"></label>
-          <label class="f"><span>Feuchtigkeit <span class="u">%</span></span><input type="text" id="feuchte" inputmode="decimal" autocomplete="off" placeholder="24,7"></label>
-          <label class="f"><span>Abzug <span class="u">Bruchkorn/Besatz %</span></span><input type="text" id="abzug" inputmode="decimal" autocomplete="off" placeholder="0,6"></label>
+          <label class="f"><span>Wiegung 1 <span class="u">kg</span></span><input type="text" id="w1" inputmode="decimal" autocomplete="off" placeholder="43820"></label>
+          <label class="f"><span>Wiegung 2 <span class="u">kg</span></span><input type="text" id="w2" inputmode="decimal" autocomplete="off" placeholder="15840"></label>
+          <label class="f"><span>Netto <span class="u">kg</span></span><input type="text" id="netto" class="calc" inputmode="decimal" autocomplete="off" placeholder="27980"></label>
+          <label class="f"><span>Feuchte <span class="u">%</span></span><input type="text" id="feuchte" inputmode="decimal" autocomplete="off" placeholder="24,7"></label>
+          <label class="f"><span>Abzug <span class="u">% Bruch/Besatz</span></span><input type="text" id="abzug" inputmode="decimal" autocomplete="off" placeholder="0,6"></label>
           <label class="f">Kennzeichen<input type="text" id="kennzeichen" autocomplete="off" placeholder="RI 737 GB"></label>
           <div class="hint full" id="nettoHint" hidden></div>
         </div>
       </div>
 
-      <div class="ha-box stack" style="gap:12px">
+      <div class="ha-box stack">
         <div class="grid">
           <label class="f">Feld
             <select id="feld"></select>
           </label>
-          <label class="f"><span>Hektar auf dieser Fuhre <span class="u">ha</span></span>
+          <label class="f"><span>Hektar der Fuhre <span class="u">ha</span></span>
             <input type="text" id="ha" inputmode="decimal" autocomplete="off" placeholder="z. B. 1,85">
           </label>
         </div>
@@ -274,17 +298,19 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
           <input type="text" id="newFieldName" placeholder="Name des Feldes, z. B. Pirath Süd" style="flex:1 1 200px">
           <button type="button" class="btn-sm" id="btnNewFieldOk">Anlegen</button>
         </div>
-        <div class="grid">
-          <label class="f"><span>Sorte <span class="u">optional</span></span><input type="text" id="sorte" autocomplete="off"></label>
-          <label class="f"><span>Notiz <span class="u">optional</span></span><input type="text" id="notiz" autocomplete="off"></label>
-        </div>
+        <details class="more" id="moreBox"><summary>Sorte, Notiz</summary>
+          <div class="grid">
+            <label class="f">Sorte<input type="text" id="sorte" autocomplete="off"></label>
+            <label class="f">Notiz<input type="text" id="notiz" autocomplete="off"></label>
+          </div>
+        </details>
       </div>
 
       <div class="result" aria-live="polite">
         <span class="eyebrow">Trockenmasseertrag</span>
         <div class="hero-num"><span class="v" id="rTmHa">–</span><span class="u">t TM / ha</span></div>
         <dl class="kv">
-          <div><dt>Trockenmasse gesamt</dt><dd id="rTm">–</dd></div>
+          <div><dt>TM gesamt</dt><dd id="rTm">–</dd></div>
           <div><dt id="rStdLabel">Ware 14 % / ha</dt><dd id="rStdHa">–</dd></div>
           <div><dt>Nassware / ha</dt><dd id="rNassHa">–</dd></div>
         </dl>
@@ -434,6 +460,7 @@ const state = {
   fotoUrl: null,
   fotoChanged: false,  // Foto im Formular neu gewählt oder entfernt
   fotoRemote: false,   // Fuhre hat ein Foto im Konto, das hier noch nicht geladen ist
+  touched: new Set(),  // Felder, die seit dem Foto von Hand geändert wurden
   nettoManual: false,
 };
 
@@ -503,13 +530,13 @@ function fillForm(r) {
 function setFoto(blob, changed = false) {
   if (state.fotoUrl) URL.revokeObjectURL(state.fotoUrl);
   state.fotoChanged = changed;
-  if (changed) state.fotoRemote = false;
+  if (changed) { state.fotoRemote = false; state.touched = new Set(); ocrRun++; }
   state.foto = blob || null;
   state.fotoUrl = blob ? URL.createObjectURL(blob) : null;
   $("thumb").innerHTML = blob ? `<img alt="Foto des Wiegescheins" src="${state.fotoUrl}">` : "kein Foto";
-  $("btnOcr").disabled = !blob;
+  $("btnOcr").hidden = !blob;
   $("btnFotoWeg").hidden = !blob;
-  $("ocrStatus").textContent = "";
+  $("ocrStatus").textContent = blob ? "" : "Die Werte werden nach dem Foto automatisch gelesen.";
 }
 function resetForm(example) {
   state.editId = null; $("editFlag").hidden = true; $("btnSave").textContent = "Fuhre speichern";
@@ -622,22 +649,36 @@ function parseSlip(text) {
   }
   return out;
 }
+// Ein Erkennungs-Worker für die ganze Sitzung; wird schon beim Tippen auf „fotografieren“ vorgeladen.
+let ocrWorkerP = null, ocrProgress = null, ocrRun = 0;
+function getOcrWorker() {
+  if (!ocrWorkerP) {
+    ocrWorkerP = (async () => {
+      if (!window.Tesseract) await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js");
+      return await Promise.race([
+        window.Tesseract.createWorker("deu", 1, { logger: (m) => { if (m.status === "recognizing text" && ocrProgress) ocrProgress(m.progress); } }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 60000)),
+      ]);
+    })();
+    ocrWorkerP.catch(() => { ocrWorkerP = null; });
+  }
+  return ocrWorkerP;
+}
 async function runOcr() {
   if (!state.foto) return;
+  const run = ++ocrRun, foto = state.foto;
   const st = $("ocrStatus"); const btn = $("btnOcr");
-  btn.disabled = true;
-  st.textContent = "Texterkennung wird geladen …";
+  btn.hidden = true;
+  st.textContent = "Lese Werte vom Foto …";
   try {
-    if (!window.Tesseract) await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js");
-    const worker = await Promise.race([
-      window.Tesseract.createWorker("deu", 1, { logger: (m) => { if (m.status === "recognizing text") st.textContent = `Lese Schein … ${Math.round(m.progress * 100)} %`; } }),
-      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 45000)),
-    ]);
-    const { data } = await worker.recognize(state.foto);
-    await worker.terminate();
+    const worker = await getOcrWorker();
+    ocrProgress = (p) => { if (run === ocrRun) st.textContent = `Lese Werte vom Foto … ${Math.round(p * 100)} %`; };
+    const { data } = await worker.recognize(foto);
+    if (run !== ocrRun || foto !== state.foto) return;   // inzwischen neues Foto
     const found = parseSlip(data.text || "");
+    for (const k of Object.keys(found)) if (state.touched.has(k)) delete found[k];  // eigene Eingaben bleiben
     const keys = Object.keys(found);
-    if (!keys.length) { st.textContent = "Keine Werte erkannt. Bitte abtippen, Foto bleibt gespeichert."; return; }
+    if (!keys.length) { st.textContent = "Keine Werte erkannt. Bitte abtippen, das Foto wird gespeichert."; return; }
     const cur = readForm();
     const merged = { ...cur, ...found };
     if (found.w1 != null && found.w2 != null) state.nettoManual = false;
@@ -647,8 +688,8 @@ async function runOcr() {
     $("exampleNote").hidden = true;
     st.textContent = `${keys.length} Werte übernommen. Bitte mit dem Schein vergleichen.`;
   } catch (e) {
-    st.textContent = "Texterkennung ist hier nicht verfügbar. Bitte die Werte abtippen, das Foto wird trotzdem gespeichert.";
-  } finally { btn.disabled = !state.foto; }
+    if (run === ocrRun) st.textContent = "Werte konnten nicht gelesen werden (kein Netz?). Bitte abtippen, das Foto wird gespeichert.";
+  } finally { if (run === ocrRun) btn.hidden = !state.foto; }
 }
 
 /* ---------------- Speichern / Löschen ---------------- */
@@ -1199,6 +1240,7 @@ $("btnKonto").addEventListener("click", () => openAccount());
 document.querySelectorAll("nav.tabs [data-tab]").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 $("form").addEventListener("submit", saveForm);
 $("form").addEventListener("input", (e) => {
+  if (e.target.id) state.touched.add(e.target.id);
   if (e.target.id === "netto") state.nettoManual = e.target.value.trim() !== "";
   if (["w1", "w2"].includes(e.target.id) && !$("netto").value.trim()) state.nettoManual = false;
   updateResult();
@@ -1219,10 +1261,13 @@ $("foto").addEventListener("change", async (e) => {
   if (!file) return;
   $("ocrStatus").textContent = "Foto wird verkleinert …";
   setFoto(await shrinkImage(file, 1400, 0.78), true);
-  $("ocrStatus").textContent = "Foto übernommen. Werte prüfen oder „Werte aus Foto lesen“.";
+  $("exampleNote").hidden = true;
+  runOcr();
 });
 $("btnFotoWeg").addEventListener("click", () => setFoto(null, true));
 $("btnOcr").addEventListener("click", runOcr);
+// Texterkennung schon laden, während die Kamera offen ist
+document.querySelector('label[for="foto"]').addEventListener("click", () => { if (location.protocol !== "file:") getOcrWorker().catch(() => {}); });
 $("yearChipsV").addEventListener("click", (e) => { const b = e.target.closest("[data-year]"); if (b) { state.year = +b.dataset.year; renderVerlauf(); } });
 $("timeline").addEventListener("click", (e) => { const b = e.target.closest("[data-id]"); if (b) openDetail(b.dataset.id); });
 $("fieldCards").addEventListener("click", async (e) => {
