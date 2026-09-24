@@ -577,6 +577,10 @@ function parseSlip(text) {
   const t = text.replace(/[|]/g, " ");
   const out = {};
   const wa = t.match(/Wa\.?\s*-?\s*Nr\.?\s*[:.]?\s*(\d{5,7})/i); if (wa) out.waNr = wa[1];
+  if (!out.waNr) { // „Wa. Nr.“ wird oft verlesen: erste alleinstehende 6-stellige Zahl im Kopf
+    const kopf = t.split(/Kunde/i)[0];
+    const w6 = kopf.match(/(?<![\d./])(\d{6})(?![\d.,/])/); if (w6) out.waNr = w6[1];
+  }
   const dt = t.match(/am\s+(\d{1,2})\.(\d{1,2})\.(\d{4})/i) || t.match(/(\d{2})\.(\d{2})\.(20\d{2})/);
   if (dt) out.datum = `${dt[3]}-${dt[2].padStart(2, "0")}-${dt[1].padStart(2, "0")}`;
   const w1 = t.match(/Wiegung\s*1[^\n]*?(\d{4,6})\s*kg/i); if (w1) out.w1 = +w1[1];
@@ -588,7 +592,11 @@ function parseSlip(text) {
   }
   const fe = t.match(/Feuchtigkeit\s*[:.]?\s*(\d{1,2})\s*[,.]\s*(\d)/i); if (fe) out.feuchte = +(fe[1] + "." + fe[2]);
   const ab = t.match(/Abzug\s*[:.]?\s*(\d{1,2})\s*[,.]\s*(\d)/i); if (ab) out.abzug = +(ab[1] + "." + ab[2]);
-  const kz = t.match(/\b([A-Z]{1,3})\s?[- ]?\s?(\d{1,5})\s?([A-Z]{1,3})\b(?![^\n]*kg)/); if (kz && /Kennzeichen/i.test(t)) out.kennzeichen = `${kz[1]} ${kz[2]} ${kz[3]}`;
+  for (const line of t.split("\n")) { // Kennzeichen wie „RI 737 GB“ (AT) oder „PA-AB 123“ (DE)
+    if (/kg|Wiegung|Tel|\d{2}:\d{2}/i.test(line)) continue;
+    const kz = line.match(/(?:^|\s)([A-ZÄÖÜ]{1,3})[ -](\d{1,5}) ([A-Z]{1,3})(?=\s|$)/) || line.match(/(?:^|\s)([A-ZÄÖÜ]{1,3})-([A-Z]{1,2}) (\d{1,4})(?=\s|$)/);
+    if (kz) { out.kennzeichen = `${kz[1]} ${kz[2]} ${kz[3]}`; break; }
+  }
   return out;
 }
 async function runOcr() {

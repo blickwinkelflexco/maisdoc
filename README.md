@@ -27,7 +27,8 @@ Roboto (Text), Radius 6 px. Dunkelmodus in der Palette von Mission Control
 - Eine Datei: `index.html`, kein Build, kein Server nötig. Läuft im Handy-Browser.
 - **Kein Login.** Daten liegen nur im Browser des Geräts (IndexedDB), inkl. Foto.
 - Sicherung als JSON (mit Fotos) und Tabelle als CSV (Excel, `;`, Dezimalkomma).
-- Texterkennung des Fotos (Tesseract.js, lädt nur auf Knopfdruck). Werte bleiben
+- Texterkennung des Fotos (Tesseract.js, lädt nur auf Knopfdruck, ca. 20–40 s). Liest am
+  Schein 100120 alle 8 Werte (Datum, Wa.-Nr., Wiegungen, Netto, Feuchte, Abzug, Kennzeichen). Werte bleiben
   editierbar; wo die Bibliothek nicht laden darf, werden die Werte abgetippt.
 
 ## Ansichten
