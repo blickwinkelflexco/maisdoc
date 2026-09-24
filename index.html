@@ -1077,7 +1077,7 @@ async function initAccount() {
   if (location.protocol === "file:") { $("btnKonto").hidden = !cached; return; }
   try {
     const r = await api("/api/auth");
-    Acct.available = true;
+    Acct.available = r.ready !== false;          // ohne Datenbank bleibt der Konto-Knopf weg
     if (r.user) { Acct.user = r.user; await Store.put("meta", r.user, "user"); await syncNow(); }
     else if (cached) await sessionLost();
     else setAcct("local");

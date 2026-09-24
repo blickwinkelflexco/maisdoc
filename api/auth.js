@@ -1,5 +1,5 @@
 // Konto: registrieren, anmelden, abmelden, Passwort ändern, Konto löschen.
-import { q, handle, send, readBody, currentUser, requireUser, createSession, endSession, clearCookie,
+import { q, dbReady, handle, send, readBody, currentUser, requireUser, createSession, endSession, clearCookie,
   hashPassword, checkPassword, normEmail, isEmail } from "./_lib.js";
 
 const MAX_FAILS = 8;          // Fehlversuche je E-Mail …
@@ -11,8 +11,9 @@ export default handle(async (req, res) => {
   const action = new URL(req.url, "http://x").searchParams.get("action") || "";
 
   if (req.method === "GET") {
+    if (!dbReady()) return send(res, 200, { user: null, ready: false });
     const u = await currentUser(req);
-    return send(res, 200, { user: u ? pub(u) : null });
+    return send(res, 200, { user: u ? pub(u) : null, ready: true });
   }
   if (req.method !== "POST") return send(res, 405, { error: "Methode nicht erlaubt." });
   const body = await readBody(req);

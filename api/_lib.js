@@ -6,6 +6,8 @@ const CONN = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
 let pool = null;
 let schemaReady = null;
 
+export const dbReady = () => !!CONN;
+
 export function db() {
   if (!CONN) {
     const e = new Error("Datenbank ist nicht eingerichtet (DATABASE_URL fehlt).");
