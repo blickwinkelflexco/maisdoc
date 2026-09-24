@@ -288,7 +288,7 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
           <label class="f"><span>Netto <span class="u">kg</span></span><input type="text" id="netto" class="calc" inputmode="decimal" autocomplete="off" placeholder="27980"></label>
           <label class="f"><span>Feuchte <span class="u">%</span></span><input type="text" id="feuchte" inputmode="decimal" autocomplete="off" placeholder="24,7"></label>
           <label class="f"><span>Abzug <span class="u">% Bruch/Besatz</span></span><input type="text" id="abzug" inputmode="decimal" autocomplete="off" placeholder="0,6"></label>
-          <label class="f">Kennzeichen<input type="text" id="kennzeichen" autocomplete="off" placeholder="RI 737 GB"></label>
+          <label class="f">Kennzeichen<input type="text" id="kennzeichen" autocomplete="off" placeholder="AB 123 CD"></label>
           <div class="hint full" id="nettoHint" hidden></div>
         </div>
       </div>
@@ -355,7 +355,7 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
     <h3>Einstellungen</h3>
     <div class="grid">
       <label class="f">Trocknung <span class="u">wohin du lieferst</span><input type="text" id="setTrocknung" autocomplete="organization" placeholder="Name der Trocknungsanlage"></label>
-      <label class="f">Kundennummer bei der Trocknung<input type="text" id="setKunde" inputmode="numeric" placeholder="10410"></label>
+      <label class="f">Kundennummer bei der Trocknung<input type="text" id="setKunde" inputmode="numeric" placeholder="z. B. 12345"></label>
       <label class="f"><span>Bezugsfeuchte Handelsware <span class="u">%</span></span><input type="text" id="setStd" inputmode="decimal" placeholder="14"></label>
       <label class="f full" style="flex-direction:row;align-items:center;gap:10px;font-size:13px">
         <input type="checkbox" id="setAbzug" style="width:22px;min-height:22px;height:22px">
@@ -558,7 +558,7 @@ function resetForm(example) {
   setFoto(null);
   const lastFeld = safeLS("get", "letztesFeld") || "";
   if (example) {
-    fillForm({ datum: "2026-09-24", waNr: "100120", w1: 43820, w2: 15840, netto: 27980, feuchte: 24.7, abzug: 0.6, kennzeichen: "RI 737 GB", feldId: lastFeld });
+    fillForm({ datum: "2026-09-24", waNr: "100120", w1: 43820, w2: 15840, netto: 27980, feuchte: 24.7, abzug: 0.6, kennzeichen: "", feldId: lastFeld });
   } else {
     fillForm({ datum: today(), feldId: lastFeld, kennzeichen: safeLS("get", "letztesKennzeichen") || "" });
   }
@@ -656,7 +656,7 @@ function parseSlip(text) {
   }
   const fe = t.match(/Feuchtigkeit\s*[:.]?\s*(\d{1,2})\s*[,.]\s*(\d)/i); if (fe) out.feuchte = +(fe[1] + "." + fe[2]);
   const ab = t.match(/Abzug\s*[:.]?\s*(\d{1,2})\s*[,.]\s*(\d)/i); if (ab) out.abzug = +(ab[1] + "." + ab[2]);
-  for (const line of t.split("\n")) { // Kennzeichen wie „RI 737 GB“ (AT) oder „PA-AB 123“ (DE)
+  for (const line of t.split("\n")) { // Kennzeichen wie „AB 123 CD“ (AT) oder „PA-AB 123“ (DE)
     if (/kg|Wiegung|Tel|\d{2}:\d{2}/i.test(line)) continue;
     const kz = line.match(/(?:^|\s)([A-ZÄÖÜ]{1,3})[ -](\d{1,5}) ([A-Z]{1,3})(?=\s|$)/) || line.match(/(?:^|\s)([A-ZÄÖÜ]{1,3})-([A-Z]{1,2}) (\d{1,4})(?=\s|$)/);
     if (kz) { out.kennzeichen = `${kz[1]} ${kz[2]} ${kz[3]}`; break; }

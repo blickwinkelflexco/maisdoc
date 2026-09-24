@@ -1,0 +1,4 @@
+# Nicht mit ausliefern (Entwicklung, Tests, Verwaltung)
+scripts/
+README.md
+node_modules/
