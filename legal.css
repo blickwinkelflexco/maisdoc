@@ -1,0 +1,20 @@
+@font-face{font-family:"Montserrat";font-weight:600;font-display:swap;src:url(fonts/montserrat-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Montserrat";font-weight:700;font-display:swap;src:url(fonts/montserrat-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Roboto";font-weight:400;font-display:swap;src:url(fonts/roboto-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Roboto";font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-normal.woff2) format("woff2")}
+:root{--paper:#fcfdfb;--ink:#0b1206;--text:#4d5249;--muted:#7b8275;--line:#e3e6e0;--green:#3f7a22}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--paper:#070a06;--ink:#eaf4e4;--text:#c9d6c0;--muted:#9db292;--line:rgba(126,217,87,.14);--green:#7ed957}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--text);font:16px/1.6 "Roboto",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:680px;margin:0 auto;padding:20px 16px 48px}
+h1,h2{font-family:"Montserrat",system-ui,sans-serif;color:var(--ink);text-wrap:balance}
+h1{font-size:26px;margin:8px 0 4px}
+h2{font-size:17px;margin:28px 0 6px}
+p,ul{margin:0 0 10px}
+ul{padding-left:20px}
+a{color:var(--green)}
+.back{font:600 14px "Montserrat",system-ui,sans-serif;text-decoration:none}
+.stand{color:var(--muted);font-size:14px}
+dl{display:grid;grid-template-columns:minmax(0,11em) 1fr;gap:4px 12px;margin:0}
+dt{color:var(--muted)}dd{margin:0}
+@media (max-width:480px){dl{grid-template-columns:1fr}dd{margin-bottom:6px}}

@@ -1,6 +1,7 @@
 // Offline-Cache: App-Hülle zuerst aus dem Netz, bei Funkloch an der Waage aus dem Cache.
-const CACHE = "maisdoc-v6";
-const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
+// Schriften und Texterkennung (ocr/) landen beim ersten Gebrauch im Cache und laufen dann offline.
+const CACHE = "maisdoc-v7";
+const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./impressum.html", "./datenschutz.html"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
@@ -10,8 +11,7 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   const sameOrigin = url.origin === self.location.origin;
-  const font = /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname);
-  if (!sameOrigin && !font) return; // Texterkennung u. a. nicht cachen
+  if (!sameOrigin) return;
   if (sameOrigin && url.pathname.startsWith("/api/")) return; // Konto-Daten nie cachen
   e.respondWith(
     fetch(req).then((res) => {

@@ -8,10 +8,15 @@
 <title>MaisDoc</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap">
 <style>
+/* Schriften vom eigenen Server (keine Verbindung zu Google) */
+@font-face{font-family:"Montserrat";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/montserrat-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Montserrat";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/montserrat-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Montserrat";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/montserrat-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Montserrat";font-style:normal;font-weight:700;font-display:swap;src:url(fonts/montserrat-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Roboto";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/roboto-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Roboto";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/roboto-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Roboto";font-style:normal;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-normal.woff2) format("woff2")}
 :root{
   /* BLICKWINKEL CI (blickwinkel_f200_landing, index.css) */
   --paper:#fcfdfb;
@@ -193,6 +198,9 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:8px;font:600 14px/1.2 var(--f-ui);z-index:40;max-width:calc(100vw - 32px)}
 .sep{border:0;border-top:1px solid var(--line);margin:4px 0}
 @media (prefers-reduced-motion:no-preference){.result .v{transition:color .2s}}
+.legal{border-top:1px solid var(--line);padding-top:10px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.legal p{margin:0}
+.legal a,.note a{color:var(--mais-ink)}
 .ha-box details.more summary{padding-block:2px;font-size:13px;color:var(--ink-soft)}
 /* Handy: dichter, damit weniger gescrollt werden muss */
 @media (max-width:520px){
@@ -362,6 +370,11 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
       <button type="button" id="btnJson">Sicherung (JSON)</button>
       <label class="btn" for="importFile">Sicherung einlesen<input type="file" id="importFile" accept="application/json,.json"></label>
     </div>
+
+    <footer class="legal">
+      <p>MaisDoc ist ein Angebot der BLICKWINKEL FlexCo und kein Angebot der Trocknungsgenossenschaft Reding eG. Alle Werte sind eigene Berechnungen aus deinen Eingaben, ohne Gewähr. Maßgeblich sind die Abrechnungen der Genossenschaft.</p>
+      <p><a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></p>
+    </footer>
   </section>
 </div>
 
@@ -654,9 +667,11 @@ let ocrWorkerP = null, ocrProgress = null, ocrRun = 0;
 function getOcrWorker() {
   if (!ocrWorkerP) {
     ocrWorkerP = (async () => {
-      if (!window.Tesseract) await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js");
+      // Texterkennung vom eigenen Server (keine Verbindung zu fremden CDNs), danach auch offline
+      if (!window.Tesseract) await loadScript("ocr/tesseract.min.js");
+      const base = new URL("ocr/", location.href).href;
       return await Promise.race([
-        window.Tesseract.createWorker("deu", 1, { logger: (m) => { if (m.status === "recognizing text" && ocrProgress) ocrProgress(m.progress); } }),
+        window.Tesseract.createWorker("deu", 1, { workerPath: base + "worker.min.js", corePath: base, langPath: base + "lang", logger: (m) => { if (m.status === "recognizing text" && ocrProgress) ocrProgress(m.progress); } }),
         new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 60000)),
       ]);
     })();
@@ -1150,7 +1165,7 @@ function openAccount(mode) {
         <div class="err" id="aErr" hidden></div>
         <button type="submit" class="btn-primary">${mode === "reg" ? "Konto anlegen" : "Anmelden"}</button>
       </form>
-      <p class="note">${mode === "login" ? "Passwort vergessen? Schreib an info@blickwinkel.pro, wir setzen es zurück." : "Mit dem Anlegen stimmst du zu, dass BLICKWINKEL deine Fuhren, Felder und Fotos speichert, um sie dir anzuzeigen. Du kannst das Konto jederzeit mit allen Daten löschen."}</p>`;
+      <p class="note">${mode === "login" ? "Passwort vergessen? Schreib von der E-Mail-Adresse deines Kontos an info@blickwinkel.pro, wir setzen es zurück." : "Für das Konto speichern wir E-Mail, Name, Fuhren, Felder und Fotos, um sie dir auf deinen Geräten anzuzeigen. Du kannst das Konto jederzeit mit allen Daten löschen. Details: <a href=\"datenschutz.html\">Datenschutzerklärung</a>."}</p>`;
     dlg.onclick = (e) => {
       const a = e.target.closest("[data-act]"); if (!a) { if (e.target === dlg) dlg.close(); return; }
       if (a.dataset.act === "close") dlg.close();

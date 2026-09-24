@@ -18,7 +18,12 @@ Eine Anwendung der BLICKWINKEL FlexCo. Online: https://maisdoc.vercel.app
 | Gemeinsam | `api/_lib.js` | Datenbank, Tabellen (legt sie selbst an), Passwörter, Sitzungen |
 
 Kein Build. Vercel liefert die statischen Dateien aus und macht aus `api/*.js`
-Serverfunktionen (Node). Einzige Abhängigkeit: `pg`.
+Serverfunktionen (Node, Region Frankfurt `fra1`). Einzige Abhängigkeit: `pg`.
+
+Recht und Datenschutz: `impressum.html`, `datenschutz.html` (Stand 24.09.2026).
+Schriften (`fonts/`) und Texterkennung (`ocr/`: tesseract.js 5.1.1, Sprachdaten deu
+4.0.0_best_int) liegen auf dem eigenen Server, damit beim Öffnen keine Daten an Google
+oder CDNs gehen. Die Content-Security-Policy in `vercel.json` erlaubt nur die eigene Adresse.
 
 ## Konto und Daten
 
@@ -38,7 +43,7 @@ Serverfunktionen (Node). Einzige Abhängigkeit: `pg`.
 ### Einrichtung der Datenbank (einmalig)
 
 Vercel → Projekt `maisdoc` → **Storage** → **Neon (Postgres)** anlegen und mit dem Projekt
-verbinden. Das setzt `DATABASE_URL`. Danach einmal neu veröffentlichen (Deployments →
+verbinden, **Region Frankfurt (aws-eu-central-1)**. Das setzt `DATABASE_URL`. Danach einmal neu veröffentlichen (Deployments →
 Redeploy). Die Tabellen legt die App beim ersten Aufruf selbst an. Solange die
 Datenbank fehlt, ist der Konto-Knopf ausgeblendet und die App läuft nur im Gerät.
 
