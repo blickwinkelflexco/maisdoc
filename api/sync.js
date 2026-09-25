@@ -45,7 +45,7 @@ export default handle(async (req, res) => {
   if (body.settings && typeof body.settings === "object") {
     const inc = body.settings;
     if (!settings.geaendert || (inc.geaendert && Date.parse(inc.geaendert) > Date.parse(settings.geaendert))) {
-      settings = { kundeNr: String(inc.kundeNr || "").slice(0, 40), trocknung: String(inc.trocknung || "").slice(0, 120), stdFeuchte: Number(inc.stdFeuchte) || 14,
+      settings = { kundeNr: String(inc.kundeNr || "").slice(0, 40), trocknung: String(inc.trocknung || "").slice(0, 120), faktor: Number(inc.faktor) > 0 ? Number(inc.faktor) : 1.189, basisfeuchte: Number.isFinite(Number(inc.basisfeuchte)) && inc.basisfeuchte !== null && inc.basisfeuchte !== "" ? Number(inc.basisfeuchte) : 13,
         abzugAnwenden: inc.abzugAnwenden !== false, geaendert: inc.geaendert || new Date().toISOString() };
       await q("UPDATE maisdoc.users SET settings = $2 WHERE id = $1", [u.id, JSON.stringify(settings)]);
     }

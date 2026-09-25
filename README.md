@@ -61,21 +61,24 @@ Datenbank fehlt, ist der Konto-Knopf ausgeblendet und die App läuft nur im Ger�
 
 ## Rechnung
 
+Rechenweise der Trocknung, übernommen aus dem Kontoauszug „Mais Ernte 2025“ (Michael,
+25.09.2026) und an allen 23 Fuhren aufs Hundertstel geprüft (`node scripts/rechnung-test.mjs`):
+
 ```
-netto      = Wiegung 1 − Wiegung 2            (bzw. „Wareneingang“ vom Schein)
-bereinigt  = netto × (1 − Abzug Bruchkorn/Besatz %)  (abschaltbar in Einstellungen)
-TM         = bereinigt × (1 − Feuchtigkeit %)
-Ware 14 %  = TM ÷ (1 − 14 %)                  (Bezugsfeuchte einstellbar)
-je ha      = Wert ÷ Hektar der Fuhre
-Feld/Saison: Σ TM ÷ Σ ha (nur Fuhren mit Hektar)
+Menge        = Wiegung 1 − Wiegung 2                       (Wareneingang, in dt)
+Nassmenge    = Menge × (1 − Abzug %)                         Abzug = Bruchkorn/Besatz (0,6 %)
+Trockenmenge = Nassmenge × (1 − (Feuchte − 13) × 1,189 / 100)
+je ha        = Trockenmenge ÷ Hektar der Fuhre             Hauptwert der App (t/ha)
+Feld/Saison: Σ Trockenmenge ÷ Σ ha (nur Fuhren mit Hektar)
+Zusätzlich:  Trockenmasse 0 % = Nassmenge × (1 − Feuchte)
 ```
 
-Beispiel Wiegeschein 100120 vom 24.09.2026: 43.820 − 15.840 = 27.980 kg,
-× 0,994 × 0,753 = 20.943 kg TM. Bei 1,80 ha → **11,63 t TM/ha** (13,53 t/ha bei 14 %).
-Der „Abzug“ am Wiegeschein ist **Bruchkorn und Besatz** (Michael, 24.09.2026).
+Umrechnungsfaktor (1,189) und Basisfeuchte (13 %) stehen unter „Felder → Einstellungen“ und sind
+je Trocknung anders. Jede Fuhre speichert die Werte, mit denen sie erfasst wurde; spätere Änderungen
+der Einstellungen rechnen alte Fuhren nicht um.
 
-Texterkennung des Fotos: Tesseract.js, lädt erst auf Knopfdruck (20–40 s am Handy).
-Liest am Schein 100120 alle 8 Werte; die Werte bleiben editierbar.
+Beispiel Wiegeschein 100120 vom 24.09.2026: 279,80 dt × 0,994 = 278,12 dt nass ×
+(1 − 11,7 × 1,189 %) = 239,43 dt trocken. Bei 1,80 ha → **13,30 t/ha**.
 
 ## Design
 
@@ -107,7 +110,7 @@ Bei Änderungen an `index.html` die Cache-Version in `sw.js` hochzählen.
 // Feld
 { "id":"uuid", "name":"Pirath Süd", "flaeche":4.2, "angelegt":"ISO", "geaendert":"ISO" }
 // Einstellungen (Server: users.settings)
-{ "trocknung":"…", "kundeNr":"10410", "stdFeuchte":14, "abzugAnwenden":true, "geaendert":"ISO" }
+{ "trocknung":"…", "kundeNr":"10410", "faktor":1.189, "basisfeuchte":13, "abzugAnwenden":true, "geaendert":"ISO" }
 ```
 
 Abgeleitete Werte (TM, t/ha) werden nie gespeichert, immer gerechnet.

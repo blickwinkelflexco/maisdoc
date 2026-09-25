@@ -315,12 +315,12 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
       </div>
 
       <div class="result" aria-live="polite">
-        <span class="eyebrow">Trockenmasseertrag</span>
-        <div class="hero-num"><span class="v" id="rTmHa">–</span><span class="u">t TM / ha</span></div>
+        <span class="eyebrow">Trockenmenge je Hektar</span>
+        <div class="hero-num"><span class="v" id="rTmHa">–</span><span class="u">t / ha</span></div>
         <dl class="kv">
-          <div><dt>TM gesamt</dt><dd id="rTm">–</dd></div>
-          <div><dt id="rStdLabel">Ware 14 % / ha</dt><dd id="rStdHa">–</dd></div>
-          <div><dt>Nassware / ha</dt><dd id="rNassHa">–</dd></div>
+          <div><dt>Trockenmenge</dt><dd id="rTm">–</dd></div>
+          <div><dt>Nassmenge / ha</dt><dd id="rNassHa">–</dd></div>
+          <div><dt>TM (0 %) / ha</dt><dd id="rTm0Ha">–</dd></div>
         </dl>
         <div class="formula" id="rFormula"></div>
       </div>
@@ -356,10 +356,12 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
     <div class="grid">
       <label class="f">Trocknung <span class="u">wohin du lieferst</span><input type="text" id="setTrocknung" autocomplete="organization" placeholder="Name der Trocknungsanlage"></label>
       <label class="f">Kundennummer bei der Trocknung<input type="text" id="setKunde" inputmode="numeric" placeholder="z. B. 12345"></label>
-      <label class="f"><span>Bezugsfeuchte Handelsware <span class="u">%</span></span><input type="text" id="setStd" inputmode="decimal" placeholder="14"></label>
+      <label class="f"><span>Umrechnungsfaktor <span class="u">vom Kontoauszug</span></span><input type="text" id="setFaktor" inputmode="decimal" placeholder="1,189"></label>
+      <label class="f"><span>Basisfeuchte <span class="u">%</span></span><input type="text" id="setBasis" inputmode="decimal" placeholder="13"></label>
+      <p class="note full" style="margin:0">Trockenmenge = Nassmenge × (1 − (Feuchte − Basisfeuchte) × Umrechnungsfaktor %). Die Werte stehen auf dem Kontoauszug deiner Trocknung. Neue Fuhren übernehmen sie, bereits gespeicherte behalten ihre Werte.</p>
       <label class="f full" style="flex-direction:row;align-items:center;gap:10px;font-size:13px">
         <input type="checkbox" id="setAbzug" style="width:22px;min-height:22px;height:22px">
-        Abzug für Bruchkorn und Besatz vor der Trockenmasse-Berechnung vom Nettogewicht abziehen
+        Abzug für Bruchkorn und Besatz vom Gewicht abziehen (Nassmenge)
       </label>
     </div>
 
@@ -467,7 +469,7 @@ const Store = (() => {
 const state = {
   lieferungen: [],
   felder: [],
-  settings: { kundeNr: "", stdFeuchte: 14, abzugAnwenden: true },
+  settings: { kundeNr: "", faktor: 1.189, basisfeuchte: 13, abzugAnwenden: true },
   year: null,
   editId: null,
   foto: null,          // Blob des aktuellen Formulars
@@ -479,38 +481,44 @@ const state = {
 };
 
 /* ---------------- Berechnung ----------------
-   netto      = Wiegung 1 − Wiegung 2 (oder Wareneingang vom Schein)
-   bereinigt  = netto × (1 − Abzug Bruchkorn/Besatz %)  (abschaltbar)
-   TM         = bereinigt × (1 − Feuchte %)
-   Ware 14 %  = TM ÷ (1 − 14 %)
-   je ha      = Wert ÷ Hektar der Fuhre
+   Rechenweise der Trocknung (Kontoauszug, geprüft an 23 Fuhren der Ernte 2025):
+   Menge       = Wiegung 1 − Wiegung 2 (Wareneingang)
+   Nassmenge   = Menge × (1 − Abzug %)                       Abzug = Bruchkorn/Besatz
+   Trockenmenge= Nassmenge × (1 − (Feuchte − Basis) × Faktor / 100)
+                 Basis 13 %, Umrechnungsfaktor 1,189 (je Trocknung einstellbar)
+   Trockenmasse= Nassmenge × (1 − Feuchte)                   zusätzlich, 0 % Wasser
+   je ha       = Wert ÷ Hektar der Fuhre
 ------------------------------------------------ */
+const DEF_FAKTOR = 1.189, DEF_BASIS = 13;
 function calc(r, s = state.settings) {
   const netto = r.netto != null ? r.netto : (r.w1 != null && r.w2 != null ? r.w1 - r.w2 : null);
   if (netto == null || netto <= 0) return null;
-  const abzugF = (s.abzugAnwenden && r.abzug) ? (1 - r.abzug / 100) : 1;
-  const bereinigt = netto * abzugF;
-  const tm = r.feuchte != null ? bereinigt * (1 - r.feuchte / 100) : null;
-  const std = tm != null ? tm / (1 - (s.stdFeuchte ?? 14) / 100) : null;
+  const abzugF = (s.abzugAnwenden !== false && r.abzug) ? (1 - r.abzug / 100) : 1;
+  const bereinigt = netto * abzugF;                       // Nassmenge laut Kontoauszug
+  const faktor = r.faktor ?? s.faktor ?? DEF_FAKTOR;
+  const basis = r.basisfeuchte ?? s.basisfeuchte ?? DEF_BASIS;
+  const schwund = r.feuchte != null ? Math.max(0, (r.feuchte - basis) * faktor) : null;   // in %
+  const tm = schwund != null ? bereinigt * (1 - schwund / 100) : null;                   // Trockenmenge
+  const tm0 = r.feuchte != null ? bereinigt * (1 - r.feuchte / 100) : null;              // Trockenmasse 0 %
   const ha = r.ha && r.ha > 0 ? r.ha : null;
   return {
-    netto, bereinigt, tm, std, ha,
+    netto, bereinigt, tm, tm0, ha, faktor, basis, schwund,
     tmHa: tm != null && ha ? tm / ha : null,
-    stdHa: std != null && ha ? std / ha : null,
-    nassHa: ha ? netto / ha : null,
+    tm0Ha: tm0 != null && ha ? tm0 / ha : null,
+    nassHa: ha ? bereinigt / ha : null,
   };
 }
 
 function aggregate(list) {
-  let tm = 0, ha = 0, netto = 0, std = 0, fw = 0, n = 0, haTm = 0, tmWithHa = 0;
+  let tm = 0, ha = 0, netto = 0, tm0 = 0, fw = 0, n = 0, haTm = 0, tmWithHa = 0;
   for (const r of list) {
     const c = calc(r); if (!c) continue;
     n++; netto += c.netto;
-    if (c.tm != null) { tm += c.tm; std += c.std; fw += (r.feuchte || 0) * c.netto; }
+    if (c.tm != null) { tm += c.tm; tm0 += c.tm0; fw += (r.feuchte || 0) * c.netto; }
     if (c.ha && c.tm != null) { haTm += c.ha; tmWithHa += c.tm; }
     if (c.ha) ha += c.ha;
   }
-  return { n, tm, ha, netto, std, feuchte: netto ? fw / netto : null, tmHa: haTm ? tmWithHa / haTm : null, stdHa: haTm ? (tmWithHa / (1 - state.settings.stdFeuchte / 100)) / haTm : null };
+  return { n, tm, tm0, ha, netto, feuchte: netto ? fw / netto : null, tmHa: haTm ? tmWithHa / haTm : null };
 }
 
 /* ---------------- Formular ---------------- */
@@ -578,16 +586,15 @@ function updateResult() {
 
   const c = calc(r);
   const s = state.settings;
-  $("rStdLabel").textContent = `Ware ${fmt(s.stdFeuchte, 0)} % / ha`;
   const v = $("rTmHa");
   if (c && c.tmHa != null) { v.textContent = fmt(c.tmHa / 1000, 2); v.classList.remove("empty"); }
   else { v.textContent = c && c.tm != null ? "Hektar fehlt" : "–"; v.classList.add("empty"); }
-  $("rTm").textContent = c && c.tm != null ? fmt(c.tm / 1000, 2) + " t" : "–";
-  $("rStdHa").textContent = c && c.stdHa != null ? fmt(c.stdHa / 1000, 2) + " t" : "–";
+  $("rTm").textContent = c && c.tm != null ? fmt(c.tm / 100, 2) + " dt" : "–";
   $("rNassHa").textContent = c && c.nassHa != null ? fmt(c.nassHa / 1000, 2) + " t" : "–";
+  $("rTm0Ha").textContent = c && c.tm0Ha != null ? fmt(c.tm0Ha / 1000, 2) + " t" : "–";
   if (c && c.tm != null) {
-    const ab = s.abzugAnwenden && r.abzug ? ` × (1 − ${fmt(r.abzug, 1)} % Bruchkorn/Besatz)` : "";
-    $("rFormula").textContent = `${fmt(c.netto, 0)} kg${ab} × (1 − ${fmt(r.feuchte, 1)} % Feuchte) = ${fmt(c.tm, 0)} kg TM` + (c.ha ? ` ÷ ${fmt(c.ha, 2)} ha` : "");
+    const ab = s.abzugAnwenden !== false && r.abzug ? ` × (1 − ${fmt(r.abzug, 1)} %)` : "";
+    $("rFormula").textContent = `${fmt(c.netto / 100, 2)} dt${ab} = ${fmt(c.bereinigt / 100, 2)} dt nass × (1 − (${fmt(r.feuchte, 1)} − ${fmt(c.basis, 0)}) × ${fmt(c.faktor, 3)} %) = ${fmt(c.tm / 100, 2)} dt trocken` + (c.ha ? ` ÷ ${fmt(c.ha, 2)} ha` : "");
   } else {
     $("rFormula").textContent = "Nettogewicht und Feuchtigkeit eintragen.";
   }
@@ -728,6 +735,8 @@ async function saveForm(ev) {
     jahr: +r.datum.slice(0, 4),
     ...r,
     foto: state.foto || null,
+    faktor: prev && prev.faktor != null ? prev.faktor : (state.settings.faktor ?? DEF_FAKTOR),
+    basisfeuchte: prev && prev.basisfeuchte != null ? prev.basisfeuchte : (state.settings.basisfeuchte ?? DEF_BASIS),
     hatFoto: !!state.foto || (!!prev && !!state.fotoRemote && !state.fotoChanged),
     fotoDirty: state.fotoChanged || !!(prev && prev.fotoDirty),
     dirty: true,
@@ -740,7 +749,7 @@ async function saveForm(ev) {
   if (rec.kennzeichen) safeLS("set", "letztesKennzeichen", rec.kennzeichen);
   state.year = rec.jahr;
   scheduleSync();
-  toast(prev ? "Fuhre geändert" : (c.tmHa != null ? `Gespeichert: ${fmt(c.tmHa / 1000, 2)} t TM/ha` : "Gespeichert (ohne Hektar)"));
+  toast(prev ? "Fuhre geändert" : (c.tmHa != null ? `Gespeichert: ${fmt(c.tmHa / 1000, 2)} t/ha trocken` : "Gespeichert (ohne Hektar)"));
   resetForm(false);
   renderAll();
   switchTab("verlauf");
@@ -772,8 +781,8 @@ function renderVerlauf() {
     .sort((a, b) => (b.datum + b.erstellt).localeCompare(a.datum + a.erstellt));
   const a = aggregate(list);
   $("seasonSummary").innerHTML = state.lieferungen.length ? `
-    <div><span>Ø t TM / ha</span><b class="mais">${a.tmHa != null ? fmt(a.tmHa / 1000, 2) : "–"}</b></div>
-    <div><span>Trockenmasse</span><b>${fmt(a.tm / 1000, 1)} t</b></div>
+    <div><span>Ø t / ha trocken</span><b class="mais">${a.tmHa != null ? fmt(a.tmHa / 1000, 2) : "–"}</b></div>
+    <div><span>Trockenmenge</span><b>${fmt(a.tm / 1000, 1)} t</b></div>
     <div><span>Hektar</span><b>${fmt(a.ha, 2)}</b></div>
     <div><span>Fuhren · Ø Feuchte</span><b>${a.n} · ${a.feuchte != null ? fmt(a.feuchte, 1) + " %" : "–"}</b></div>` : "";
   $("seasonSummary").hidden = !state.lieferungen.length;
@@ -791,7 +800,7 @@ function renderVerlauf() {
       <span class="m"><b>${esc(fieldName(r.feldId))}</b>
         <span>${fmt(c.netto / 1000, 2)} t nass · ${fmt(r.feuchte, 1)} % · ${r.ha ? fmt(r.ha, 2) + " ha" : "ohne ha"}${r.foto || r.hatFoto ? " · Foto" : ""}</span>
         <span class="bar" aria-hidden="true"><i style="width:${pct}%"></i></span></span>
-      <span class="y">${c.tmHa != null ? fmt(c.tmHa / 1000, 2) : "–"}<small>t TM/ha</small></span>
+      <span class="y">${c.tmHa != null ? fmt(c.tmHa / 1000, 2) : "–"}<small>t/ha trocken</small></span>
     </button></li>`;
   }).join("");
 }
@@ -804,14 +813,14 @@ function openDetail(id) {
   $("dlgBody").innerHTML = `
     <div class="row" style="justify-content:space-between"><h2>${esc(fieldName(r.feldId))}</h2><button type="button" class="btn-sm btn-ghost" data-act="close">Schließen</button></div>
     <span class="eyebrow">${d}${r.waNr ? " · Wa.-Nr. " + esc(r.waNr) : ""}${r.kennzeichen ? " · " + esc(r.kennzeichen) : ""}</span>
-    <div class="hero-num"><span class="v">${c.tmHa != null ? fmt(c.tmHa / 1000, 2) : "–"}</span><span class="u">t TM / ha</span></div>
+    <div class="hero-num"><span class="v">${c.tmHa != null ? fmt(c.tmHa / 1000, 2) : "–"}</span><span class="u">t / ha trocken</span></div>
     <dl class="kv">
       <div><dt>Wareneingang</dt><dd>${fmt(c.netto, 0)} kg</dd></div>
       <div><dt>Feuchtigkeit</dt><dd>${fmt(r.feuchte, 1)} %</dd></div>
       <div><dt>Bruchkorn/Besatz</dt><dd>${r.abzug != null ? fmt(r.abzug, 1) + " %" : "–"}</dd></div>
       <div><dt>Hektar</dt><dd>${r.ha ? fmt(r.ha, 2) : "–"}</dd></div>
-      <div><dt>Trockenmasse</dt><dd>${fmt(c.tm / 1000, 2)} t</dd></div>
-      <div><dt>Ware ${fmt(state.settings.stdFeuchte, 0)} % / ha</dt><dd>${c.stdHa != null ? fmt(c.stdHa / 1000, 2) + " t" : "–"}</dd></div>
+      <div><dt>Nassmenge</dt><dd>${fmt(c.bereinigt / 100, 2)} dt</dd></div>
+      <div><dt>Trockenmenge</dt><dd>${fmt(c.tm / 100, 2)} dt</dd></div>
     </dl>
     ${r.sorte || r.notiz ? `<p class="note">${r.sorte ? "Sorte: " + esc(r.sorte) : ""}${r.sorte && r.notiz ? " · " : ""}${esc(r.notiz)}</p>` : ""}
     <div id="dlgFoto">${url ? `<img src="${url}" alt="Foto des Wiegescheins">` : r.hatFoto ? `<p class="note">Foto wird aus dem Konto geladen …</p>` : `<p class="note">Kein Foto gespeichert.</p>`}</div>
@@ -876,7 +885,7 @@ function renderFelder() {
     const deletable = f && !list.length;
     return `<article class="field-card">
       <header><h3>${esc(f ? f.name : "Ohne Feld")}</h3><span>${f && f.flaeche ? fmt(f.flaeche, 2) + " ha Fläche · " : ""}${list.length} Fuhren</span></header>
-      ${rows ? `<div class="tbl-wrap"><table><thead><tr><th>Ernte</th><th>Fuhren</th><th>ha</th><th>t TM</th><th>t TM/ha</th><th>Ø Feuchte %</th><th>zum Vorjahr</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="note">Noch keine Fuhre auf diesem Feld.</p>`}
+      ${rows ? `<div class="tbl-wrap"><table><thead><tr><th>Ernte</th><th>Fuhren</th><th>ha</th><th>t trocken</th><th>t/ha trocken</th><th>Ø Feuchte %</th><th>zum Vorjahr</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="note">Noch keine Fuhre auf diesem Feld.</p>`}
       ${deletable ? `<div><button type="button" class="btn-sm btn-ghost" data-delfield="${esc(f.id)}">Feld entfernen</button></div>` : ""}
     </article>`;
   }).join("");
@@ -901,10 +910,10 @@ function csvCell(v) { const s = String(v ?? ""); return /[;"\n]/.test(s) ? `"${s
 async function exportCsv() {
   if (!state.lieferungen.length) { toast("Noch nichts gespeichert."); return; }
   const n = (v, d) => v == null || !isFinite(v) ? "" : v.toFixed(d).replace(".", ",");
-  const head = ["Datum", "Ernte", "Wa.-Nr.", "Kennzeichen", "Feld", "Hektar", "Wiegung 1 kg", "Wiegung 2 kg", "Netto kg", "Feuchte %", "Abzug Bruchkorn/Besatz %", "TM kg", "t TM/ha", `Ware ${state.settings.stdFeuchte}% t/ha`, "Sorte", "Notiz", "Kunde"];
+  const head = ["Datum", "Ernte", "Wa.-Nr.", "Kennzeichen", "Feld", "Hektar", "Wiegung 1 kg", "Wiegung 2 kg", "Menge dt", "Feuchte %", "Abzug %", "Nassmenge dt", "Trockenmenge dt", "t/ha trocken", "Umrechnungsfaktor", "Basisfeuchte %", "Trockenmasse 0 % t/ha", "Sorte", "Notiz", "Kunde"];
   const rows = [...state.lieferungen].sort((a, b) => a.datum.localeCompare(b.datum)).map((r) => {
     const c = calc(r) || {};
-    return [r.datum, r.jahr, r.waNr, r.kennzeichen, fieldName(r.feldId), n(r.ha, 2), n(r.w1, 0), n(r.w2, 0), n(c.netto, 0), n(r.feuchte, 1), n(r.abzug, 1), n(c.tm, 0), n(c.tmHa != null ? c.tmHa / 1000 : null, 2), n(c.stdHa != null ? c.stdHa / 1000 : null, 2), r.sorte, r.notiz, r.kundeNr].map(csvCell).join(";");
+    return [r.datum, r.jahr, r.waNr, r.kennzeichen, fieldName(r.feldId), n(r.ha, 2), n(r.w1, 0), n(r.w2, 0), n(c.netto != null ? c.netto / 100 : null, 2), n(r.feuchte, 1), n(r.abzug, 1), n(c.bereinigt != null ? c.bereinigt / 100 : null, 2), n(c.tm != null ? c.tm / 100 : null, 2), n(c.tmHa != null ? c.tmHa / 1000 : null, 2), n(c.faktor, 3), n(c.basis, 1), n(c.tm0Ha != null ? c.tm0Ha / 1000 : null, 2), r.sorte, r.notiz, r.kundeNr].map(csvCell).join(";");
   });
   await offerFile(`maisdoc-${today()}.csv`, "﻿" + [head.join(";"), ...rows].join("\r\n"), "text/csv");
 }
@@ -938,7 +947,8 @@ async function saveSettings() {
   const s = state.settings;
   s.kundeNr = $("setKunde").value.trim();
   s.trocknung = $("setTrocknung").value.trim();
-  const std = num($("setStd").value); s.stdFeuchte = std != null && std >= 0 && std < 40 ? std : 14;
+  const f = num($("setFaktor").value); s.faktor = f != null && f > 0.5 && f < 3 ? f : DEF_FAKTOR;
+  const b = num($("setBasis").value); s.basisfeuchte = b != null && b >= 0 && b < 30 ? b : DEF_BASIS;
   s.abzugAnwenden = $("setAbzug").checked;
   s.geaendert = new Date().toISOString(); s.dirty = true;
   await Store.put("meta", s, "settings");
@@ -948,7 +958,8 @@ async function saveSettings() {
 function applySettingsToForm() {
   $("setKunde").value = state.settings.kundeNr || "";
   $("setTrocknung").value = state.settings.trocknung || "";
-  $("setStd").value = String(state.settings.stdFeuchte ?? 14).replace(".", ",");
+  $("setFaktor").value = String(state.settings.faktor ?? DEF_FAKTOR).replace(".", ",");
+  $("setBasis").value = String(state.settings.basisfeuchte ?? DEF_BASIS).replace(".", ",");
   $("setAbzug").checked = !!state.settings.abzugAnwenden;
 }
 
@@ -1301,7 +1312,7 @@ $("btnAddField").addEventListener("click", async () => {
   const f = await addField($("addFieldName").value, num($("addFieldArea").value));
   if (f) { $("addFieldName").value = ""; $("addFieldArea").value = ""; renderAll(); toast(`Feld „${f.name}“ angelegt`); }
 });
-["setTrocknung", "setKunde", "setStd", "setAbzug"].forEach((id) => $(id).addEventListener("change", saveSettings));
+["setTrocknung", "setKunde", "setFaktor", "setBasis", "setAbzug"].forEach((id) => $(id).addEventListener("change", saveSettings));
 $("btnCsv").addEventListener("click", exportCsv);
 $("btnJson").addEventListener("click", exportJson);
 $("importFile").addEventListener("change", (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) importJson(f); });
