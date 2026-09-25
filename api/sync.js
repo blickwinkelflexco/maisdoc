@@ -4,7 +4,7 @@
 import { q, handle, send, readBody, requireUser } from "./_lib.js";
 
 const MAX_ITEMS = 2000;
-const TABLES = { lieferungen: "lieferungen", felder: "felder" };
+const TABLES = { lieferungen: "maisdoc.lieferungen", felder: "maisdoc.felder" };
 
 function clean(item) {
   if (!item || typeof item !== "object") return null;
@@ -26,7 +26,7 @@ async function upsert(table, userId, items) {
          SET data = EXCLUDED.data, geaendert = EXCLUDED.geaendert, geloescht = EXCLUDED.geloescht, updated_at = now()
          WHERE ${table}.geaendert < EXCLUDED.geaendert`,
       [userId, it.id, JSON.stringify(it.data), it.geaendert, it.geloescht]);
-    if (table === "lieferungen" && it.geloescht) await q("DELETE FROM fotos WHERE user_id = $1 AND id = $2", [userId, it.id]);
+    if (table === TABLES.lieferungen && it.geloescht) await q("DELETE FROM maisdoc.fotos WHERE user_id = $1 AND id = $2", [userId, it.id]);
   }
 }
 
@@ -47,7 +47,7 @@ export default handle(async (req, res) => {
     if (!settings.geaendert || (inc.geaendert && Date.parse(inc.geaendert) > Date.parse(settings.geaendert))) {
       settings = { kundeNr: String(inc.kundeNr || "").slice(0, 40), trocknung: String(inc.trocknung || "").slice(0, 120), stdFeuchte: Number(inc.stdFeuchte) || 14,
         abzugAnwenden: inc.abzugAnwenden !== false, geaendert: inc.geaendert || new Date().toISOString() };
-      await q("UPDATE users SET settings = $2 WHERE id = $1", [u.id, JSON.stringify(settings)]);
+      await q("UPDATE maisdoc.users SET settings = $2 WHERE id = $1", [u.id, JSON.stringify(settings)]);
     }
   }
 
@@ -57,7 +57,7 @@ export default handle(async (req, res) => {
     const r = await q(`SELECT data, geaendert, geloescht FROM ${TABLES[key]} WHERE user_id = $1 AND updated_at >= $2::timestamptz ORDER BY updated_at`, [u.id, since]);
     out[key] = r.rows.map((x) => ({ ...x.data, geaendert: x.geaendert.toISOString(), geloescht: x.geloescht ? x.geloescht.toISOString() : null }));
   }
-  const fotos = await q("SELECT id FROM fotos WHERE user_id = $1", [u.id]);
+  const fotos = await q("SELECT id FROM maisdoc.fotos WHERE user_id = $1", [u.id]);
   // 5 s Sicherheitsabstand für gleichzeitig laufende Schreibvorgänge anderer Geräte
   send(res, 200, { serverTime: new Date(new Date(t0).getTime() - 5000).toISOString(), settings, fotos: fotos.rows.map((r) => r.id), ...out });
 });

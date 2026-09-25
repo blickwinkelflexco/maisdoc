@@ -2,7 +2,8 @@
 import pg from "pg";
 import crypto from "node:crypto";
 
-const CONN = process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
+// Neon über Vercel setzt je nach Präfix DATABASE_URL, POSTGRES_URL oder STORAGE_URL
+const CONN = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.STORAGE_URL || "";
 let pool = null;
 let schemaReady = null;
 
@@ -29,7 +30,8 @@ export async function q(text, params) {
 function ensureSchema() {
   if (!schemaReady) {
     schemaReady = db().query(`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE SCHEMA IF NOT EXISTS maisdoc;
+      CREATE TABLE IF NOT EXISTS maisdoc.users (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         email text NOT NULL UNIQUE,
         pw_hash text NOT NULL,
@@ -37,14 +39,14 @@ function ensureSchema() {
         settings jsonb NOT NULL DEFAULT '{}'::jsonb,
         created timestamptz NOT NULL DEFAULT now()
       );
-      CREATE TABLE IF NOT EXISTS sessions (
+      CREATE TABLE IF NOT EXISTS maisdoc.sessions (
         token_hash text PRIMARY KEY,
-        user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        user_id uuid NOT NULL REFERENCES maisdoc.users(id) ON DELETE CASCADE,
         created timestamptz NOT NULL DEFAULT now(),
         expires timestamptz NOT NULL
       );
-      CREATE TABLE IF NOT EXISTS lieferungen (
-        user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      CREATE TABLE IF NOT EXISTS maisdoc.lieferungen (
+        user_id uuid NOT NULL REFERENCES maisdoc.users(id) ON DELETE CASCADE,
         id text NOT NULL,
         data jsonb NOT NULL,
         geaendert timestamptz NOT NULL,
@@ -52,8 +54,8 @@ function ensureSchema() {
         updated_at timestamptz NOT NULL DEFAULT now(),
         PRIMARY KEY (user_id, id)
       );
-      CREATE TABLE IF NOT EXISTS felder (
-        user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      CREATE TABLE IF NOT EXISTS maisdoc.felder (
+        user_id uuid NOT NULL REFERENCES maisdoc.users(id) ON DELETE CASCADE,
         id text NOT NULL,
         data jsonb NOT NULL,
         geaendert timestamptz NOT NULL,
@@ -61,21 +63,21 @@ function ensureSchema() {
         updated_at timestamptz NOT NULL DEFAULT now(),
         PRIMARY KEY (user_id, id)
       );
-      CREATE TABLE IF NOT EXISTS fotos (
-        user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      CREATE TABLE IF NOT EXISTS maisdoc.fotos (
+        user_id uuid NOT NULL REFERENCES maisdoc.users(id) ON DELETE CASCADE,
         id text NOT NULL,
         mime text NOT NULL,
         data bytea NOT NULL,
         updated_at timestamptz NOT NULL DEFAULT now(),
         PRIMARY KEY (user_id, id)
       );
-      CREATE TABLE IF NOT EXISTS login_fail (
+      CREATE TABLE IF NOT EXISTS maisdoc.login_fail (
         email text NOT NULL,
         at timestamptz NOT NULL DEFAULT now()
       );
-      CREATE INDEX IF NOT EXISTS lieferungen_upd ON lieferungen (user_id, updated_at);
-      CREATE INDEX IF NOT EXISTS felder_upd ON felder (user_id, updated_at);
-      CREATE INDEX IF NOT EXISTS login_fail_email ON login_fail (email, at);
+      CREATE INDEX IF NOT EXISTS lieferungen_upd ON maisdoc.lieferungen (user_id, updated_at);
+      CREATE INDEX IF NOT EXISTS felder_upd ON maisdoc.felder (user_id, updated_at);
+      CREATE INDEX IF NOT EXISTS login_fail_email ON maisdoc.login_fail (email, at);
     `).catch((e) => { schemaReady = null; throw e; });
   }
   return schemaReady;
@@ -102,7 +104,7 @@ const sha = (t) => crypto.createHash("sha256").update(t).digest("hex");
 
 export async function createSession(res, userId) {
   const token = crypto.randomBytes(32).toString("base64url");
-  await q("INSERT INTO sessions (token_hash, user_id, expires) VALUES ($1, $2, now() + make_interval(days => $3))", [sha(token), userId, SESSION_DAYS]);
+  await q("INSERT INTO maisdoc.sessions (token_hash, user_id, expires) VALUES ($1, $2, now() + make_interval(days => $3))", [sha(token), userId, SESSION_DAYS]);
   res.setHeader("Set-Cookie", `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}`);
 }
 export function clearCookie(res) {
@@ -116,13 +118,13 @@ export async function currentUser(req) {
   const token = readCookie(req);
   if (!token) return null;
   const r = await q(
-    `SELECT u.id, u.email, u.name, u.settings FROM sessions s JOIN users u ON u.id = s.user_id
+    `SELECT u.id, u.email, u.name, u.settings FROM maisdoc.sessions s JOIN maisdoc.users u ON u.id = s.user_id
      WHERE s.token_hash = $1 AND s.expires > now()`, [sha(token)]);
   return r.rows[0] || null;
 }
 export async function endSession(req) {
   const token = readCookie(req);
-  if (token) await q("DELETE FROM sessions WHERE token_hash = $1", [sha(token)]);
+  if (token) await q("DELETE FROM maisdoc.sessions WHERE token_hash = $1", [sha(token)]);
 }
 export async function requireUser(req) {
   const u = await currentUser(req);

@@ -9,7 +9,7 @@ export default handle(async (req, res) => {
   if (!id) return send(res, 400, { error: "id fehlt." });
 
   if (req.method === "GET") {
-    const r = await q("SELECT mime, data FROM fotos WHERE user_id = $1 AND id = $2", [u.id, id]);
+    const r = await q("SELECT mime, data FROM maisdoc.fotos WHERE user_id = $1 AND id = $2", [u.id, id]);
     if (!r.rows[0]) return send(res, 404, { error: "Kein Foto." });
     res.statusCode = 200;
     res.setHeader("Content-Type", r.rows[0].mime);
@@ -23,17 +23,17 @@ export default handle(async (req, res) => {
     const buf = Buffer.from(String(body.data || ""), "base64");
     if (!buf.length) return send(res, 400, { error: "Foto fehlt." });
     if (buf.length > MAX_BYTES) return send(res, 413, { error: "Foto ist zu groß." });
-    const own = await q("SELECT 1 FROM lieferungen WHERE user_id = $1 AND id = $2 AND geloescht IS NULL", [u.id, id]);
+    const own = await q("SELECT 1 FROM maisdoc.lieferungen WHERE user_id = $1 AND id = $2 AND geloescht IS NULL", [u.id, id]);
     if (!own.rows[0]) return send(res, 404, { error: "Fuhre nicht gefunden. Erst abgleichen, dann Foto senden." });
     await q(
-      `INSERT INTO fotos (user_id, id, mime, data) VALUES ($1, $2, $3, $4)
+      `INSERT INTO maisdoc.fotos (user_id, id, mime, data) VALUES ($1, $2, $3, $4)
        ON CONFLICT (user_id, id) DO UPDATE SET mime = EXCLUDED.mime, data = EXCLUDED.data, updated_at = now()`,
       [u.id, id, mime, buf]);
     return send(res, 200, { ok: true });
   }
 
   if (req.method === "DELETE") {
-    await q("DELETE FROM fotos WHERE user_id = $1 AND id = $2", [u.id, id]);
+    await q("DELETE FROM maisdoc.fotos WHERE user_id = $1 AND id = $2", [u.id, id]);
     return send(res, 200, { ok: true });
   }
   return send(res, 405, { error: "Methode nicht erlaubt." });
