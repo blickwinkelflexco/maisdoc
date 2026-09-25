@@ -119,6 +119,11 @@ nav.tabs button[aria-selected="true"] svg{color:var(--mais-ink)}
 label.f{display:flex;flex-direction:column;gap:5px;font:500 12px/1.2 var(--f-mono);color:var(--ink-soft);letter-spacing:.02em}
 label.f .u{color:var(--muted);font-weight:400}
 input,select,textarea{font:500 16px/1.2 var(--f-mono);color:var(--ink);background:var(--surface);border:1px solid var(--slip-line);border-radius:6px;padding:10px 11px;width:100%;min-height:44px;font-variant-numeric:tabular-nums}
+label.f{min-width:0}
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
+input[type=date]::-webkit-calendar-picker-indicator{margin-left:auto}
+.grid > *{min-width:0}
 textarea{min-height:64px;resize:vertical;font-size:15px}
 input.calc{background:transparent;border-style:dashed}
 .hint{font:400 12px/1.3 var(--f-mono);color:var(--warn)}
@@ -243,7 +248,7 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
     <div class="brand">
       <small>BLICKWINKEL</small>
       <h1>Mais<span>Doc</span></h1>
-      <p class="sub">Maisertrag vom Wiegeschein bis zur Trockenmasse je Hektar</p>
+      <p class="sub">Maisertrag je Hektar</p>
     </div>
     <button type="button" class="acct" id="btnKonto" hidden>
       <span class="acct-name" id="acctName">Anmelden</span>
@@ -260,7 +265,6 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
       <span class="eyebrow" id="editFlag" hidden>Bearbeiten</span>
     </div>
 
-    <p class="note" id="exampleNote" hidden>Beispiel: Wiegeschein 100120 vom 24.09.2026. Für eine echte Fuhre „Neu“ tippen oder gleich fotografieren.</p>
 
     <form id="form" class="stack" novalidate>
       <div class="slip">
@@ -276,19 +280,19 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
               <button type="button" class="btn-sm" id="btnOcr" hidden>Erneut lesen</button>
               <button type="button" class="btn-sm btn-ghost" id="btnFotoWeg" hidden>Foto entfernen</button>
             </div>
-            <div id="ocrStatus">Die Werte werden nach dem Foto automatisch gelesen.</div>
+            <div id="ocrStatus">Werte werden nach dem Foto automatisch gelesen.</div>
           </div>
         </div>
 
         <div class="grid">
           <label class="f">Datum<input type="date" id="datum" required></label>
-          <label class="f">Wa.-Nr.<input type="text" id="waNr" inputmode="numeric" autocomplete="off" placeholder="100120"></label>
-          <label class="f"><span>Wiegung 1 <span class="u">kg</span></span><input type="text" id="w1" inputmode="decimal" autocomplete="off" placeholder="43820"></label>
-          <label class="f"><span>Wiegung 2 <span class="u">kg</span></span><input type="text" id="w2" inputmode="decimal" autocomplete="off" placeholder="15840"></label>
-          <label class="f"><span>Netto <span class="u">kg</span></span><input type="text" id="netto" class="calc" inputmode="decimal" autocomplete="off" placeholder="27980"></label>
-          <label class="f"><span>Feuchte <span class="u">%</span></span><input type="text" id="feuchte" inputmode="decimal" autocomplete="off" placeholder="24,7"></label>
-          <label class="f"><span>Abzug <span class="u">% Bruch/Besatz</span></span><input type="text" id="abzug" inputmode="decimal" autocomplete="off" placeholder="0,6"></label>
-          <label class="f">Kennzeichen<input type="text" id="kennzeichen" autocomplete="off" placeholder="AB 123 CD"></label>
+          <label class="f">Wa.-Nr.<input type="text" id="waNr" inputmode="numeric" autocomplete="off"></label>
+          <label class="f"><span>Wiegung 1 <span class="u">kg</span></span><input type="text" id="w1" inputmode="decimal" autocomplete="off"></label>
+          <label class="f"><span>Wiegung 2 <span class="u">kg</span></span><input type="text" id="w2" inputmode="decimal" autocomplete="off"></label>
+          <label class="f"><span>Netto <span class="u">kg</span></span><input type="text" id="netto" class="calc" inputmode="decimal" autocomplete="off"></label>
+          <label class="f"><span>Feuchte <span class="u">%</span></span><input type="text" id="feuchte" inputmode="decimal" autocomplete="off"></label>
+          <label class="f"><span>Abzug <span class="u">% Bruch/Besatz</span></span><input type="text" id="abzug" inputmode="decimal" autocomplete="off"></label>
+          <label class="f">Kennzeichen<input type="text" id="kennzeichen" autocomplete="off"></label>
           <div class="hint full" id="nettoHint" hidden></div>
         </div>
       </div>
@@ -299,11 +303,11 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
             <select id="feld"></select>
           </label>
           <label class="f"><span>Hektar der Fuhre <span class="u">ha</span></span>
-            <input type="text" id="ha" inputmode="decimal" autocomplete="off" placeholder="z. B. 1,85">
+            <input type="text" id="ha" inputmode="decimal" autocomplete="off">
           </label>
         </div>
         <div class="row" id="newFieldRow" hidden>
-          <input type="text" id="newFieldName" placeholder="Name des Feldes, z. B. Pirath Süd" style="flex:1 1 200px">
+          <input type="text" id="newFieldName" placeholder="Name des Feldes" style="flex:1 1 200px">
           <button type="button" class="btn-sm" id="btnNewFieldOk">Anlegen</button>
         </div>
         <details class="more" id="moreBox"><summary>Sorte, Notiz</summary>
@@ -343,7 +347,6 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
   <!-- ======================= FELDER ======================= -->
   <section id="view-felder" class="stack" hidden aria-labelledby="h-felder">
     <h2 id="h-felder">Felder</h2>
-    <p class="note">Ertrag je Feld über alle Erntejahre. Pro Feld zählt die Summe der Trockenmasse geteilt durch die Summe der eingetragenen Hektar aller Fuhren.</p>
     <div class="stack" id="fieldCards"></div>
     <div class="row">
       <input type="text" id="addFieldName" placeholder="Neues Feld" style="flex:1 1 160px">
@@ -354,11 +357,10 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
     <hr class="sep">
     <h3>Einstellungen</h3>
     <div class="grid">
-      <label class="f">Trocknung <span class="u">wohin du lieferst</span><input type="text" id="setTrocknung" autocomplete="organization" placeholder="Name der Trocknungsanlage"></label>
-      <label class="f">Kundennummer bei der Trocknung<input type="text" id="setKunde" inputmode="numeric" placeholder="z. B. 12345"></label>
-      <label class="f"><span>Umrechnungsfaktor <span class="u">vom Kontoauszug</span></span><input type="text" id="setFaktor" inputmode="decimal" placeholder="1,189"></label>
-      <label class="f"><span>Basisfeuchte <span class="u">%</span></span><input type="text" id="setBasis" inputmode="decimal" placeholder="13"></label>
-      <p class="note full" style="margin:0">Trockenmenge = Nassmenge × (1 − (Feuchte − Basisfeuchte) × Umrechnungsfaktor %). Die Werte stehen auf dem Kontoauszug deiner Trocknung. Neue Fuhren übernehmen sie, bereits gespeicherte behalten ihre Werte.</p>
+      <label class="f">Trocknung<input type="text" id="setTrocknung" autocomplete="organization" ></label>
+      <label class="f">Kundennummer<input type="text" id="setKunde" inputmode="numeric"></label>
+      <label class="f"><span>Umrechnungsfaktor</span><input type="text" id="setFaktor" inputmode="decimal"></label>
+      <label class="f"><span>Basisfeuchte <span class="u">%</span></span><input type="text" id="setBasis" inputmode="decimal"></label>
       <label class="f full" style="flex-direction:row;align-items:center;gap:10px;font-size:13px">
         <input type="checkbox" id="setAbzug" style="width:22px;min-height:22px;height:22px">
         Abzug für Bruchkorn und Besatz vom Gewicht abziehen (Nassmenge)
@@ -367,7 +369,7 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
 
     <hr class="sep">
     <h3>Daten sichern</h3>
-    <p class="note" id="backupNote">Ohne Konto liegen die Daten nur auf diesem Gerät. Die Sicherung (JSON, mit Fotos) lässt sich auf einem anderen Gerät wieder einlesen. Die Tabelle (CSV) öffnet Excel.</p>
+    <p class="note" id="backupNote"></p>
     <div class="row">
       <button type="button" id="btnCsv">Tabelle (CSV)</button>
       <button type="button" id="btnJson">Sicherung (JSON)</button>
@@ -538,7 +540,7 @@ function readForm() {
 }
 const toField = (v, d) => v == null ? "" : (d == null ? String(v) : String(v).replace(".", ","));
 function fillForm(r) {
-  $("datum").value = r.datum || today();
+  $("datum").value = r.datum || "";
   $("waNr").value = r.waNr || "";
   $("w1").value = toField(r.w1, 0); $("w2").value = toField(r.w2, 0); $("netto").value = toField(r.netto, 0);
   $("feuchte").value = toField(r.feuchte, 1); $("abzug").value = toField(r.abzug, 1);
@@ -558,19 +560,15 @@ function setFoto(blob, changed = false) {
   $("thumb").innerHTML = blob ? `<img alt="Foto des Wiegescheins" src="${state.fotoUrl}">` : "kein Foto";
   $("btnOcr").hidden = !blob;
   $("btnFotoWeg").hidden = !blob;
-  $("ocrStatus").textContent = blob ? "" : "Die Werte werden nach dem Foto automatisch gelesen.";
+  $("ocrStatus").textContent = blob ? "" : "Werte werden nach dem Foto automatisch gelesen.";
 }
-function resetForm(example) {
+function resetForm() {
   state.editId = null; $("editFlag").hidden = true; $("btnSave").textContent = "Fuhre speichern";
   state.fotoRemote = false;
   setFoto(null);
   const lastFeld = safeLS("get", "letztesFeld") || "";
-  if (example) {
-    fillForm({ datum: "2026-09-24", waNr: "100120", w1: 43820, w2: 15840, netto: 27980, feuchte: 24.7, abzug: 0.6, kennzeichen: "", feldId: lastFeld });
-  } else {
-    fillForm({ datum: today(), feldId: lastFeld, kennzeichen: safeLS("get", "letztesKennzeichen") || "" });
-  }
-  $("exampleNote").hidden = !example;
+  // Leeres Formular: Werte kommen erst aus dem Foto (oder von Hand). Nur das zuletzt gewählte Feld bleibt.
+  fillForm({ datum: "", feldId: lastFeld });
 }
 
 function updateResult() {
@@ -699,17 +697,17 @@ async function runOcr() {
     const { data } = await worker.recognize(foto);
     if (run !== ocrRun || foto !== state.foto) return;   // inzwischen neues Foto
     const found = parseSlip(data.text || "");
+    const gelesen = Object.keys(found).length;               // von 8 möglichen Werten am Wiegeschein
     for (const k of Object.keys(found)) if (state.touched.has(k)) delete found[k];  // eigene Eingaben bleiben
     const keys = Object.keys(found);
-    if (!keys.length) { st.textContent = "Keine Werte erkannt. Bitte abtippen, das Foto wird gespeichert."; return; }
+    if (!gelesen) { st.textContent = "0 von 8 Werten gelesen (0 %). Bitte abtippen, das Foto wird gespeichert."; return; }
     const cur = readForm();
     const merged = { ...cur, ...found };
     if (found.w1 != null && found.w2 != null) state.nettoManual = false;
     fillForm({ ...merged, feldId: cur.feldId });
     if (found.netto != null && found.w1 != null && found.w2 != null && found.w1 - found.w2 !== found.netto) state.nettoManual = true;
     updateResult();
-    $("exampleNote").hidden = true;
-    st.textContent = `${keys.length} Werte übernommen. Bitte mit dem Schein vergleichen.`;
+    st.textContent = `${gelesen} von 8 Werten gelesen (${Math.round(gelesen / 8 * 100)} %)` + (gelesen < 8 ? ". Fehlende bitte ergänzen." : ". Bitte kurz mit dem Schein vergleichen.");
   } catch (e) {
     if (run === ocrRun) st.textContent = "Werte konnten nicht gelesen werden (kein Netz?). Bitte abtippen, das Foto wird gespeichert.";
   } finally { if (run === ocrRun) btn.hidden = !state.foto; }
@@ -746,11 +744,10 @@ async function saveForm(ev) {
   const i = state.lieferungen.findIndex((x) => x.id === rec.id);
   if (i >= 0) state.lieferungen[i] = rec; else state.lieferungen.push(rec);
   if (rec.feldId) safeLS("set", "letztesFeld", rec.feldId);
-  if (rec.kennzeichen) safeLS("set", "letztesKennzeichen", rec.kennzeichen);
   state.year = rec.jahr;
   scheduleSync();
   toast(prev ? "Fuhre geändert" : (c.tmHa != null ? `Gespeichert: ${fmt(c.tmHa / 1000, 2)} t/ha trocken` : "Gespeichert (ohne Hektar)"));
-  resetForm(false);
+  resetForm();
   renderAll();
   switchTab("verlauf");
 }
@@ -787,7 +784,7 @@ function renderVerlauf() {
     <div><span>Fuhren · Ø Feuchte</span><b>${a.n} · ${a.feuchte != null ? fmt(a.feuchte, 1) + " %" : "–"}</b></div>` : "";
   $("seasonSummary").hidden = !state.lieferungen.length;
   if (!list.length) {
-    $("timeline").innerHTML = `<li class="empty">Noch keine Fuhre gespeichert. Unter „Erfassen“ den Wiegeschein fotografieren, Hektar eintragen und speichern.</li>`;
+    $("timeline").innerHTML = `<li class="empty">Noch keine Fuhre.</li>`;
     return;
   }
   const maxHa = Math.max(...list.map((r) => { const c = calc(r); return c && c.tmHa ? c.tmHa : 0; }), 1);
@@ -841,7 +838,7 @@ function openDetail(id) {
       const cur = state.lieferungen.find((x) => x.id === r.id) || r;
       setFoto(cur.foto || null); state.fotoRemote = !cur.foto && !!cur.hatFoto;
       if (state.fotoRemote) $("thumb").textContent = "Foto im Konto";
-      $("editFlag").hidden = false; $("exampleNote").hidden = true; $("btnSave").textContent = "Änderung speichern";
+      $("editFlag").hidden = false; $("btnSave").textContent = "Änderung speichern";
       window.scrollTo({ top: 0 });
     }
   };
@@ -867,7 +864,7 @@ function renderFelder() {
   }
   const ids = [...state.felder].sort((a, b) => a.name.localeCompare(b.name, "de")).map((f) => f.id);
   if (byField.has("")) ids.push("");
-  if (!ids.length) { $("fieldCards").innerHTML = `<div class="empty panel">Noch keine Felder. Unten anlegen oder beim Erfassen „+ neues Feld“ wählen.</div>`; return; }
+  if (!ids.length) { $("fieldCards").innerHTML = `<div class="empty panel">Noch keine Felder.</div>`; return; }
   $("fieldCards").innerHTML = ids.map((id) => {
     const f = state.felder.find((x) => x.id === id);
     const list = byField.get(id) || [];
@@ -880,12 +877,12 @@ function renderFelder() {
         const dd = (a.tmHa - prev.tmHa) / prev.tmHa * 100;
         delta = `<span class="${dd >= 0 ? "delta-up" : "delta-down"}">${dd >= 0 ? "+" : "−"}${fmt(Math.abs(dd), 0)} %</span>`;
       }
-      return `<tr><td>${y}</td><td>${a.n}</td><td>${fmt(a.ha, 2)}</td><td>${fmt(a.tm / 1000, 1)}</td><td class="hi">${a.tmHa != null ? fmt(a.tmHa / 1000, 2) : "–"}</td><td>${a.feuchte != null ? fmt(a.feuchte, 1) : "–"}</td><td>${delta}</td></tr>`;
+      return `<tr><td>${y}</td><td>${fmt(a.ha, 2)}</td><td>${fmt(a.tm / 1000, 1)}</td><td class="hi">${a.tmHa != null ? fmt(a.tmHa / 1000, 2) : "–"}</td><td>${a.feuchte != null ? fmt(a.feuchte, 1) + " %" : "–"}</td><td>${delta}</td></tr>`;
     }).join("");
     const deletable = f && !list.length;
     return `<article class="field-card">
-      <header><h3>${esc(f ? f.name : "Ohne Feld")}</h3><span>${f && f.flaeche ? fmt(f.flaeche, 2) + " ha Fläche · " : ""}${list.length} Fuhren</span></header>
-      ${rows ? `<div class="tbl-wrap"><table><thead><tr><th>Ernte</th><th>Fuhren</th><th>ha</th><th>t trocken</th><th>t/ha trocken</th><th>Ø Feuchte %</th><th>zum Vorjahr</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="note">Noch keine Fuhre auf diesem Feld.</p>`}
+      <header><h3>${esc(f ? f.name : "Ohne Feld")}</h3><span>${f && f.flaeche ? fmt(f.flaeche, 2) + " ha Fläche · " : ""}${list.length} ${list.length === 1 ? "Fuhre" : "Fuhren"}</span></header>
+      ${rows ? `<div class="tbl-wrap"><table><thead><tr><th>Ernte</th><th>ha</th><th>t</th><th>t/ha</th><th>Feuchte</th><th>Vorjahr</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="note">Noch keine Fuhre auf diesem Feld.</p>`}
       ${deletable ? `<div><button type="button" class="btn-sm btn-ghost" data-delfield="${esc(f.id)}">Feld entfernen</button></div>` : ""}
     </article>`;
   }).join("");
@@ -1021,8 +1018,8 @@ function setAcct(status, msg) {
   }[status] || ["", ""];
   dot.className = "dot " + map[0]; txt.textContent = map[1];
   $("backupNote").textContent = Acct.user
-    ? "Deine Daten liegen im Konto und auf diesem Gerät. Zusätzlich kannst du eine Sicherung (JSON, mit Fotos) oder eine Tabelle (CSV für Excel) speichern."
-    : "Ohne Konto liegen die Daten nur auf diesem Gerät. Die Sicherung (JSON, mit Fotos) lässt sich auf einem anderen Gerät wieder einlesen. Die Tabelle (CSV) öffnet Excel.";
+    ? "Daten liegen im Konto."
+    : "Ohne Konto nur auf diesem Gerät.";
 }
 
 function scheduleSync(delay = 800) {
@@ -1241,7 +1238,7 @@ function openAccount(mode) {
         if (act === "logout-wipe") {
           for (const store of ["lieferungen", "felder"]) for (const x of (await Store.all(store)) || []) await Store.del(store, x.id);
           await Store.put("meta", null, "syncUser"); await Store.put("meta", null, "since");
-          await reloadState(); renderAll(); resetForm(true);
+          await reloadState(); renderAll(); resetForm();
         }
         dlg.close(); setAcct("local"); toast("Abgemeldet");
       }
@@ -1274,7 +1271,7 @@ $("form").addEventListener("input", (e) => {
   if (["w1", "w2"].includes(e.target.id) && !$("netto").value.trim()) state.nettoManual = false;
   updateResult();
 });
-$("btnReset").addEventListener("click", () => resetForm(false));
+$("btnReset").addEventListener("click", () => resetForm());
 $("feld").addEventListener("change", (e) => {
   const neu = e.target.value === "__neu";
   $("newFieldRow").hidden = !neu;
@@ -1290,7 +1287,6 @@ $("foto").addEventListener("change", async (e) => {
   if (!file) return;
   $("ocrStatus").textContent = "Foto wird verkleinert …";
   setFoto(await shrinkImage(file, 1400, 0.78), true);
-  $("exampleNote").hidden = true;
   runOcr();
 });
 $("btnFotoWeg").addEventListener("click", () => setFoto(null, true));
@@ -1328,7 +1324,7 @@ $("importFile").addEventListener("change", (e) => { const f = e.target.files && 
   if (Store.isVolatile) $("storageBanner").hidden = false;
   applySettingsToForm();
   renderAll();
-  resetForm(state.lieferungen.length === 0);
+  resetForm();
   // Offline-Betrieb, nur auf der eigenen Webadresse (nicht in Vorschauen / file://)
   try { if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {}); } catch (e) {}
   const t = safeLS("get", "tab");
