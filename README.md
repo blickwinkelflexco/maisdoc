@@ -49,6 +49,11 @@ oder CDNs gehen. Die Content-Security-Policy in `vercel.json` erlaubt nur die ei
 
 ### Einrichtung der Datenbank (einmalig)
 
+**Eingerichtet am 25.09.2026:** Neon-Datenbank „neon-bisque-zebra“ ist mit dem Projekt verbunden
+(`DATABASE_URL`). MaisDoc legt alle Tabellen im eigenen Schema `maisdoc` an und berührt
+andere Tabellen dieser Datenbank nicht. Live geprüft: 28 API-Prüfungen und Durchlauf mit zwei Geräten.
+
+
 Vercel → Projekt `maisdoc` → **Storage** → **Neon (Postgres)** anlegen und mit dem Projekt
 verbinden, **Region Frankfurt (aws-eu-central-1)**. Das setzt `DATABASE_URL`. Danach einmal neu veröffentlichen (Deployments →
 Redeploy). Die Tabellen legt die App beim ersten Aufruf selbst an. Solange die
