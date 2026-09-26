@@ -207,6 +207,22 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
 .legal p{margin:0}
 .legal a,.note a{color:var(--mais-ink)}
 input.fehlt{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn)}
+.seg-sm{display:inline-grid;grid-template-columns:auto auto}
+.seg-sm button{min-height:36px;padding:6px 14px;font-size:14px}
+.aw-total{display:flex;flex-wrap:wrap;gap:4px 16px;font:500 13px/1.3 var(--f-ui);color:var(--ink-soft)}
+.aw-total b{font:700 15px/1.2 var(--f-head);color:var(--ink);font-variant-numeric:tabular-nums}
+.aw{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.aw li{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:10px 2px;border-bottom:1px solid var(--line)}
+.aw li:last-child{border-bottom:0}
+.aw .n{font:600 16px/1.2 var(--f-head);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aw .v{font:700 20px/1 var(--f-head);font-variant-numeric:tabular-nums;text-align:right;grid-row:span 2;align-self:center}
+.aw .v small{display:block;font:500 11px/1.2 var(--f-ui);color:var(--muted);text-align:right}
+.aw .m{font:400 12px/1.3 var(--f-ui);color:var(--muted);font-variant-numeric:tabular-nums}
+.aw .b{grid-column:1/-1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.aw .b i{display:block;height:100%;background:var(--mais);border-radius:0 3px 3px 0}
+.fv{list-style:none;margin:0 0 10px;padding:0}
+.fv li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.fv li span{color:var(--muted);font-size:12px}
 .ha-box details.more summary{padding-block:2px;font-size:13px;color:var(--ink-soft)}
 /* Handy: dichter, damit weniger gescrollt werden muss */
 @media (max-width:520px){
@@ -311,12 +327,11 @@ input.fehlt{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn)}
           <input type="text" id="newFieldName" placeholder="Name des Feldes" style="flex:1 1 200px">
           <button type="button" class="btn-sm" id="btnNewFieldOk">Anlegen</button>
         </div>
-        <details class="more" id="moreBox"><summary>Sorte, Notiz</summary>
-          <div class="grid">
-            <label class="f">Sorte<input type="text" id="sorte" autocomplete="off"></label>
-            <label class="f">Notiz<input type="text" id="notiz" autocomplete="off"></label>
-          </div>
-        </details>
+        <div class="grid">
+          <label class="f">Sorte<input type="text" id="sorte" autocomplete="off" list="sortenListe"></label>
+          <label class="f">Notiz<input type="text" id="notiz" autocomplete="off"></label>
+        </div>
+        <datalist id="sortenListe"></datalist>
       </div>
 
       <div class="result" aria-live="polite">
@@ -347,13 +362,25 @@ input.fehlt{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn)}
 
   <!-- ======================= FELDER ======================= -->
   <section id="view-felder" class="stack" hidden aria-labelledby="h-felder">
-    <h2 id="h-felder">Felder</h2>
-    <div class="stack" id="fieldCards"></div>
-    <div class="row">
-      <input type="text" id="addFieldName" placeholder="Neues Feld" style="flex:1 1 160px">
-      <input type="text" id="addFieldArea" inputmode="decimal" placeholder="Fläche ha" style="flex:0 1 120px">
-      <button type="button" id="btnAddField">Feld anlegen</button>
+    <h2 id="h-felder">Auswertung</h2>
+    <div class="row" style="justify-content:space-between;gap:8px">
+      <div class="seg seg-sm" role="group" aria-label="Auswerten nach">
+        <button type="button" data-by="feld" aria-pressed="true">Felder</button>
+        <button type="button" data-by="sorte" aria-pressed="false">Sorten</button>
+      </div>
+      <div class="chips" id="yearChipsA" role="group" aria-label="Erntejahr"></div>
     </div>
+    <div class="aw-total" id="awTotal"></div>
+    <ol class="aw" id="awList"></ol>
+
+    <details class="more" id="felderVerwalten"><summary>Felder verwalten</summary>
+      <ul class="fv" id="fieldCards"></ul>
+      <div class="row">
+        <input type="text" id="addFieldName" placeholder="Neues Feld" style="flex:1 1 160px">
+        <input type="text" id="addFieldArea" inputmode="decimal" placeholder="Fläche ha" style="flex:0 1 120px">
+        <button type="button" id="btnAddField">Feld anlegen</button>
+      </div>
+    </details>
 
     <hr class="sep">
     <h3>Einstellungen</h3>
@@ -391,7 +418,7 @@ input.fehlt{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn)}
     <button type="button" role="tab" data-tab="verlauf" aria-selected="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h13"/></svg>Verlauf</button>
     <button type="button" role="tab" data-tab="felder" aria-selected="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 20l5-14 4 10 3-6 6 10z"/></svg>Felder</button>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Auswertung</button>
   </div>
 </nav>
 
@@ -948,38 +975,45 @@ function openDetail(id) {
 }
 
 /* ---------------- Felder-Ansicht ---------------- */
+// Auswertung: Rangliste nach Feld oder Sorte, Erntejahr wählbar. t/ha = Σ Trockenmenge ÷ Σ ha.
+state.awBy = "feld"; state.awYear = null;
 function renderFelder() {
-  const byField = new Map();
-  for (const r of state.lieferungen) {
-    const k = r.feldId || "";
-    if (!byField.has(k)) byField.set(k, []);
-    byField.get(k).push(r);
+  const ys = [...new Set(state.lieferungen.map((r) => r.jahr))].sort((a, b) => b - a);
+  if (state.awYear !== "alle" && !ys.includes(state.awYear)) state.awYear = ys[0] ?? "alle";
+  $("yearChipsA").innerHTML = ys.length ? ys.map((y) => `<button type="button" class="chip" aria-pressed="${y === state.awYear}" data-ay="${y}">${y}</button>`).join("")
+    + (ys.length > 1 ? `<button type="button" class="chip" aria-pressed="${state.awYear === "alle"}" data-ay="alle">Alle</button>` : "") : "";
+  document.querySelectorAll("[data-by]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.by === state.awBy)));
+  const list = state.lieferungen.filter((r) => state.awYear === "alle" || r.jahr === state.awYear);
+  const groups = new Map();
+  for (const r of list) {
+    const key = state.awBy === "feld" ? (r.feldId || "") : ((r.sorte || "").trim() || "");
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(r);
   }
-  const ids = [...state.felder].sort((a, b) => a.name.localeCompare(b.name, "de")).map((f) => f.id);
-  if (byField.has("")) ids.push("");
-  if (!ids.length) { $("fieldCards").innerHTML = `<div class="empty panel">Noch keine Felder.</div>`; return; }
-  $("fieldCards").innerHTML = ids.map((id) => {
-    const f = state.felder.find((x) => x.id === id);
-    const list = byField.get(id) || [];
-    const ys = [...new Set(list.map((r) => r.jahr))].sort((a, b) => b - a);
-    const rows = ys.map((y, i) => {
-      const a = aggregate(list.filter((r) => r.jahr === y));
-      const prev = ys[i + 1] != null ? aggregate(list.filter((r) => r.jahr === ys[i + 1])) : null;
-      let delta = "";
-      if (prev && prev.tmHa && a.tmHa) {
-        const dd = (a.tmHa - prev.tmHa) / prev.tmHa * 100;
-        delta = `<span class="${dd >= 0 ? "delta-up" : "delta-down"}">${dd >= 0 ? "+" : "−"}${fmt(Math.abs(dd), 0)} %</span>`;
-      }
-      return `<tr><td>${y}</td><td>${fmt(a.ha, 2)}</td><td>${fmt(a.tm / 1000, 1)}</td><td class="hi">${a.tmHa != null ? fmt(a.tmHa / 1000, 2) : "–"}</td><td>${a.feuchte != null ? fmt(a.feuchte, 1) + " %" : "–"}</td><td>${delta}</td></tr>`;
-    }).join("");
-    const deletable = f && !list.length;
-    return `<article class="field-card">
-      <header><h3>${esc(f ? f.name : "Ohne Feld")}</h3><span>${f && f.flaeche ? fmt(f.flaeche, 2) + " ha Fläche · " : ""}${list.length} ${list.length === 1 ? "Fuhre" : "Fuhren"}</span></header>
-      ${rows ? `<div class="tbl-wrap"><table><thead><tr><th>Ernte</th><th>ha</th><th>t</th><th>t/ha</th><th>Feuchte</th><th>Vorjahr</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="note">Noch keine Fuhre auf diesem Feld.</p>`}
-      ${deletable ? `<div><button type="button" class="btn-sm btn-ghost" data-delfield="${esc(f.id)}">Feld entfernen</button></div>` : ""}
-    </article>`;
-  }).join("");
+  const name = (k) => state.awBy === "feld" ? (k ? fieldName(k) : "ohne Feld") : (k || "ohne Sorte");
+  const rows = [...groups.entries()].map(([k, l]) => ({ k, name: name(k), a: aggregate(l) }))
+    .sort((x, y) => (y.a.tmHa ?? -1) - (x.a.tmHa ?? -1) || x.name.localeCompare(y.name, "de"));
+  const tot = aggregate(list);
+  $("awTotal").innerHTML = list.length ? `<span>Gesamt <b>${tot.tmHa != null ? fmt(tot.tmHa / 1000, 2) + " t/ha" : "–"}</b></span><span><b>${fmt(tot.tm / 1000, 1)}</b> t trocken</span><span><b>${fmt(tot.ha, 2)}</b> ha</span><span><b>${tot.n}</b> ${tot.n === 1 ? "Fuhre" : "Fuhren"}</span>` : "";
+  const max = Math.max(...rows.map((r) => r.a.tmHa || 0), 1);
+  $("awList").innerHTML = rows.length ? rows.map((r) => {
+    const pct = r.a.tmHa ? Math.max(2, Math.round(r.a.tmHa / max * 100)) : 0;
+    const tip = `${r.name}: ${r.a.tmHa != null ? fmt(r.a.tmHa / 1000, 2) + " t/ha" : "ohne Hektar"}, ${fmt(r.a.tm / 1000, 1)} t trocken auf ${fmt(r.a.ha, 2)} ha, Ø Feuchte ${r.a.feuchte != null ? fmt(r.a.feuchte, 1) + " %" : "–"}`;
+    return `<li title="${esc(tip)}"><span class="n">${esc(r.name)}</span>
+      <span class="v">${r.a.tmHa != null ? fmt(r.a.tmHa / 1000, 2) : "–"}<small>t/ha</small></span>
+      <span class="m">${fmt(r.a.ha, 2)} ha · ${fmt(r.a.tm / 1000, 1)} t · ${r.a.feuchte != null ? fmt(r.a.feuchte, 1) + " %" : "–"} · ${r.a.n} ${r.a.n === 1 ? "Fuhre" : "Fuhren"}</span>
+      <span class="b" aria-hidden="true"><i style="width:${pct}%"></i></span></li>`;
+  }).join("") : `<li class="empty" style="display:block">Noch keine Fuhre.</li>`;
+  // Felder verwalten
+  const used = new Set(state.lieferungen.map((r) => r.feldId));
+  $("fieldCards").innerHTML = [...state.felder].sort((a, b) => a.name.localeCompare(b.name, "de")).map((f) =>
+    `<li><div>${esc(f.name)} <span>${f.flaeche ? fmt(f.flaeche, 2) + " ha" : ""}</span></div>${used.has(f.id) ? "" : `<button type="button" class="btn-sm btn-ghost" data-delfield="${esc(f.id)}">Entfernen</button>`}</li>`).join("");
+  // Sorten-Vorschläge für die Erfassung
+  const sorten = [...new Set(state.lieferungen.map((r) => (r.sorte || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de"));
+  $("sortenListe").innerHTML = sorten.map((x) => `<option value="${esc(x)}">`).join("");
 }
+$("yearChipsA").addEventListener("click", (e) => { const b = e.target.closest("[data-ay]"); if (b) { state.awYear = b.dataset.ay === "alle" ? "alle" : +b.dataset.ay; renderFelder(); } });
+document.querySelectorAll("[data-by]").forEach((b) => b.addEventListener("click", () => { state.awBy = b.dataset.by; renderFelder(); }));
 
 /* ---------------- Export / Import ---------------- */
 async function offerFile(filename, data, mime) {
