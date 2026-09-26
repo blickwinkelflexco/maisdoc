@@ -1,6 +1,6 @@
 // Offline-Cache: App-Hülle zuerst aus dem Netz, bei Funkloch an der Waage aus dem Cache.
 // Schriften und Texterkennung (ocr/) landen beim ersten Gebrauch im Cache und laufen dann offline.
-const CACHE = "maisdoc-v14";
+const CACHE = "maisdoc-v15";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./impressum.html", "./datenschutz.html"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => {
