@@ -554,6 +554,7 @@ function fillForm(r) {
 function setFoto(blob, changed = false) {
   if (state.fotoUrl) URL.revokeObjectURL(state.fotoUrl);
   state.fotoChanged = changed;
+  state.fotoOrig = null;
   if (changed) { state.fotoRemote = false; state.touched = new Set(); ocrRun++; }
   state.foto = blob || null;
   state.fotoUrl = blob ? URL.createObjectURL(blob) : null;
@@ -648,26 +649,92 @@ function parseSlip(text) {
   const wa = t.match(/Wa\.?\s*-?\s*Nr\.?\s*[:.]?\s*(\d{5,7})/i); if (wa) out.waNr = wa[1];
   if (!out.waNr) { // „Wa. Nr.“ wird oft verlesen: erste alleinstehende 6-stellige Zahl im Kopf
     const kopf = t.split(/Kunde/i)[0];
-    const w6 = kopf.match(/(?<![\d./])(\d{6})(?![\d.,/])/); if (w6) out.waNr = w6[1];
+    const w6 = kopf.match(/(?<![\d./])(1\d{5})(?![\d.,/])/); if (w6) out.waNr = w6[1];
   }
   const dt = t.match(/am\s+(\d{1,2})\.(\d{1,2})\.(\d{4})/i) || t.match(/(\d{2})\.(\d{2})\.(20\d{2})/);
   if (dt) out.datum = `${dt[3]}-${dt[2].padStart(2, "0")}-${dt[1].padStart(2, "0")}`;
-  const w1 = t.match(/Wiegung\s*1[^\n]*?(\d{4,6})\s*kg/i); if (w1) out.w1 = +w1[1];
-  const w2 = t.match(/Wiegung\s*2[^\n]*?(\d{4,6})\s*kg/i); if (w2) out.w2 = +w2[1];
-  const we = t.match(/Wareneingang[^\n]*?(\d{4,6})\s*kg/i); if (we) out.netto = +we[1];
-  if (out.w1 == null || out.w2 == null) {
-    const kgs = [...t.matchAll(/(\d{4,6})\s*kg/gi)].map((m) => +m[1]);
-    if (kgs.length >= 3 && out.w1 == null) { out.w1 = kgs[0]; out.w2 = kgs[1]; out.netto = out.netto ?? kgs[2]; }
+  if (!out.datum) { // Datum aus „Wiegung 1: 09:54:04 26.09.“ und „Ernte 2026“
+    const wd = t.match(/Wiegung\s*[12][^\n]*?\d{2}[:.]\d{2}[:.]\d{2}\s+(\d{1,2})\.(\d{1,2})\./i);
+    const jahr = (t.match(/Ernte\s*(20\d{2})/i) || [])[1];
+    if (wd && jahr) out.datum = `${jahr}-${wd[2].padStart(2, "0")}-${wd[1].padStart(2, "0")}`;
   }
-  const fe = t.match(/Feuchtigkeit\s*[:.]?\s*(\d{1,2})\s*[,.]\s*(\d)/i); if (fe) out.feuchte = +(fe[1] + "." + fe[2]);
-  const ab = t.match(/Abzug\s*[:.]?\s*(\d{1,2})\s*[,.]\s*(\d)/i); if (ab) out.abzug = +(ab[1] + "." + ab[2]);
-  for (const line of t.split("\n")) { // Kennzeichen wie „AB 123 CD“ (AT) oder „PA-AB 123“ (DE)
-    if (/kg|Wiegung|Tel|\d{2}:\d{2}/i.test(line)) continue;
-    const kz = line.match(/(?:^|\s)([A-ZÄÖÜ]{1,3})[ -](\d{1,5}) ([A-Z]{1,3})(?=\s|$)/) || line.match(/(?:^|\s)([A-ZÄÖÜ]{1,3})-([A-Z]{1,2}) (\d{1,4})(?=\s|$)/);
+  const kg = (re) => { const m = t.match(re); return m ? +m[1] : null; };
+  const w1 = kg(/Wiegung\s*1[^\n]*?(\d{4,5})\s*k[gq9]/i); if (w1) out.w1 = w1;
+  const w2 = kg(/Wiegung\s*2[^\n]*?(\d{4,5})\s*k[gq9]/i); if (w2) out.w2 = w2;
+  const we = kg(/Wareneingang[^\n]*?(\d{4,5})\s*k[gq9]/i); if (we) out.netto = we;
+  if (out.w1 == null || out.w2 == null) {
+    const kgs = [...t.matchAll(/(?<!\d)(\d{4,5})\s*k[gq9]\b/gi)].map((m) => +m[1]);
+    if (kgs.length >= 3 && out.w1 == null && out.w2 == null) { out.w1 = kgs[0]; out.w2 = kgs[1]; out.netto = out.netto ?? kgs[2]; }
+  }
+  // Feuchte: „23,9 %“ – das Komma wird oft als 7, 1 oder Leerzeichen gelesen
+  const fe = t.match(/Feucht\w*\s*[:.]?\s*(\d{2})\s*[,.]\s*(\d)/i) || t.match(/Feucht\w*\s*[:.]?\s*(\d{2})[71l|]?(\d)\s*[%°©]/i);
+  if (fe) { const v = +(fe[1] + "." + fe[2]); if (v >= 10 && v <= 45) out.feuchte = v; }
+  const ab = t.match(/Abzug\s*[:.]?\s*(\d)\s*[,.'\/]?\s*(\d)\s*[%°©]?/i);
+  if (ab) { const v = +(ab[1] + "." + ab[2]); if (v >= 0 && v <= 9.9) out.abzug = v; }
+  // Kennzeichen wie „RI 737 GB“ (AT) oder „PA-AB 123“ (DE); bevorzugt die Zeile beim Wort „Kennzeichen“
+  const lines = t.split("\n");
+  const ki = lines.findIndex((l) => /Kennzeich/i.test(l));
+  const order = ki >= 0 ? [...lines.slice(ki, ki + 3), ...lines] : lines;
+  for (const line of order) {
+    if (/kg|Wiegung|Tel|\d{2}:\d{2}|\d{4,}/i.test(line)) continue;
+    const kz = line.match(/(?:^|\s)([A-ZÄÖÜ]{1,2})[ -](\d{2,5}) ([A-Z]{1,3})(?=\s|$)/) || line.match(/(?:^|\s)([A-ZÄÖÜ]{1,3})-([A-Z]{1,2}) (\d{2,4})(?=\s|$)/);
     if (kz) { out.kennzeichen = `${kz[1]} ${kz[2]} ${kz[3]}`; break; }
   }
   return out;
 }
+
+// Mehrere Lesungen zusammenführen: je Wert die häufigste, Gewichte über Wiegung 1 − Wiegung 2 = Netto prüfen
+const OCR_KEYS = ["datum", "waNr", "w1", "w2", "netto", "feuchte", "abzug", "kennzeichen"];
+function mergeReads(reads) {
+  const out = {};
+  for (const k of OCR_KEYS) {
+    const cnt = new Map();
+    reads.forEach((r, i) => { if (r[k] != null) { const c = cnt.get(r[k]) || { n: 0, first: i }; c.n++; cnt.set(r[k], c); } });
+    const best = [...cnt.entries()].sort((a, b) => b[1].n - a[1].n || a[1].first - b[1].first)[0];
+    if (best) out[k] = best[0];
+  }
+  const vals = (k) => [...new Set(reads.map((r) => r[k]).filter((v) => v != null))];
+  const W1 = vals("w1"), W2 = vals("w2"), N = vals("netto");
+  let fix = null;
+  for (const a of W1) for (const b of W2) for (const n of N) if (a - b === n) fix = fix || { w1: a, w2: b, netto: n };
+  if (fix) Object.assign(out, fix);
+  else if (out.w1 != null && out.netto != null && (out.w2 == null || out.w1 - out.w2 !== out.netto) && out.w1 > out.netto) out.w2 = out.w1 - out.netto;
+  else if (out.w2 != null && out.netto != null && out.w1 == null) out.w1 = out.w2 + out.netto;
+  else if (out.w1 != null && out.w2 != null && out.netto == null && out.w1 > out.w2) out.netto = out.w1 - out.w2;
+  return out;
+}
+const ocrComplete = (m) => OCR_KEYS.every((k) => m[k] != null) && m.w1 - m.w2 === m.netto;
+
+// Bildaufbereitung für die Texterkennung: verkleinern, Graustufen, Schatten/Licht ausgleichen
+// Reihenfolge an echten Reding-Scheinen (Schatten, Sonnenfleck) erprobt; bricht ab, sobald alles stimmig gelesen ist
+const OCR_PASSES = [{ side: 2200, mode: "norm", win: 16 }, { side: 2200, mode: "bin", win: 32, th: 0.9 }, { side: 2200, mode: "bin", win: 16 }, { side: 1400, mode: "raw" }];
+async function prepOcr(blob, { side, mode, win, th = 0.85 }) {
+  const img = await new Promise((res, rej) => { const u = URL.createObjectURL(blob); const i = new Image(); i.onload = () => { URL.revokeObjectURL(u); res(i); }; i.onerror = rej; i.src = u; });
+  const k = Math.min(1, side / Math.max(img.naturalWidth, img.naturalHeight));
+  const w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(img, 0, 0, w, h);
+  if (mode === "raw") return c;
+  const id = g.getImageData(0, 0, w, h), d = id.data, gray = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) gray[i] = 0.299 * d[4 * i] + 0.587 * d[4 * i + 1] + 0.114 * d[4 * i + 2];
+  const W = w + 1, I = new Float64Array(W * (h + 1));
+  for (let y = 1; y <= h; y++) { let row = 0; for (let x = 1; x <= w; x++) { row += gray[(y - 1) * w + x - 1]; I[y * W + x] = I[(y - 1) * W + x] + row; } }
+  const r = Math.max(8, Math.round(Math.max(w, h) / win));
+  for (let y = 0; y < h; y++) {
+    const y0 = Math.max(0, y - r), y1 = Math.min(h, y + r + 1);
+    for (let x = 0; x < w; x++) {
+      const x0 = Math.max(0, x - r), x1 = Math.min(w, x + r + 1);
+      const mean = (I[y1 * W + x1] - I[y0 * W + x1] - I[y1 * W + x0] + I[y0 * W + x0]) / ((x1 - x0) * (y1 - y0));
+      let v;
+      if (mode === "bin") v = gray[y * w + x] < mean * th ? 0 : 255;
+      else { v = 255 * Math.min(1, gray[y * w + x] / (mean * 0.95)); v = v < 200 ? Math.max(0, (v - 60) * 1.4) : 255; }
+      const o = 4 * (y * w + x); d[o] = d[o + 1] = d[o + 2] = v;
+    }
+  }
+  g.putImageData(id, 0, 0);
+  return c;
+}
+
 // Ein Erkennungs-Worker für die ganze Sitzung; wird schon beim Tippen auf „fotografieren“ vorgeladen.
 let ocrWorkerP = null, ocrProgress = null, ocrRun = 0;
 function getOcrWorker() {
@@ -687,19 +754,26 @@ function getOcrWorker() {
 }
 async function runOcr() {
   if (!state.foto) return;
-  const run = ++ocrRun, foto = state.foto;
+  const run = ++ocrRun, foto = state.foto, quelle = state.fotoOrig || state.foto;
   const st = $("ocrStatus"); const btn = $("btnOcr");
   btn.hidden = true;
   st.textContent = "Lese Werte vom Foto …";
   try {
     const worker = await getOcrWorker();
-    ocrProgress = (p) => { if (run === ocrRun) st.textContent = `Lese Werte vom Foto … ${Math.round(p * 100)} %`; };
-    const { data } = await worker.recognize(foto);
-    if (run !== ocrRun || foto !== state.foto) return;   // inzwischen neues Foto
-    const found = parseSlip(data.text || "");
-    const gelesen = Object.keys(found).length;               // von 8 möglichen Werten am Wiegeschein
+    const reads = [];
+    let m = {};
+    for (let i = 0; i < OCR_PASSES.length; i++) {
+      ocrProgress = (p) => { if (run === ocrRun) st.textContent = `Lese Werte vom Foto … ${Math.round(((i + p) / OCR_PASSES.length) * 100)} %`; };
+      const bild = await prepOcr(quelle, OCR_PASSES[i]);
+      const { data } = await worker.recognize(bild);
+      if (run !== ocrRun || foto !== state.foto) return;   // inzwischen neues Foto
+      reads.push(parseSlip(data.text || ""));
+      m = mergeReads(reads);
+      if (ocrComplete(m)) break;                            // alles gelesen und stimmig: fertig
+    }
+    const found = { ...m };
+    const gelesen = OCR_KEYS.filter((k) => found[k] != null).length;   // von 8 möglichen Werten am Wiegeschein
     for (const k of Object.keys(found)) if (state.touched.has(k)) delete found[k];  // eigene Eingaben bleiben
-    const keys = Object.keys(found);
     if (!gelesen) { st.textContent = "0 von 8 Werten gelesen (0 %). Bitte abtippen, das Foto wird gespeichert."; return; }
     const cur = readForm();
     const merged = { ...cur, ...found };
@@ -709,7 +783,7 @@ async function runOcr() {
     updateResult();
     st.textContent = `${gelesen} von 8 Werten gelesen (${Math.round(gelesen / 8 * 100)} %)` + (gelesen < 8 ? ". Fehlende bitte ergänzen." : ". Bitte kurz mit dem Schein vergleichen.");
   } catch (e) {
-    if (run === ocrRun) st.textContent = "Werte konnten nicht gelesen werden (kein Netz?). Bitte abtippen, das Foto wird gespeichert.";
+    if (run === ocrRun) st.textContent = "Werte konnten nicht gelesen werden. Bitte abtippen, das Foto wird gespeichert.";
   } finally { if (run === ocrRun) btn.hidden = !state.foto; }
 }
 
@@ -1287,6 +1361,7 @@ $("foto").addEventListener("change", async (e) => {
   if (!file) return;
   $("ocrStatus").textContent = "Foto wird verkleinert …";
   setFoto(await shrinkImage(file, 1400, 0.78), true);
+  state.fotoOrig = file;   // volle Auflösung nur für die Texterkennung
   runOcr();
 });
 $("btnFotoWeg").addEventListener("click", () => setFoto(null, true));
