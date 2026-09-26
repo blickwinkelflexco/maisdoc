@@ -206,6 +206,7 @@ dialog::backdrop{background:rgba(10,20,14,.55)}
 .legal{border-top:1px solid var(--line);padding-top:10px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
 .legal p{margin:0}
 .legal a,.note a{color:var(--mais-ink)}
+input.fehlt{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn)}
 .ha-box details.more summary{padding-block:2px;font-size:13px;color:var(--ink-soft)}
 /* Handy: dichter, damit weniger gescrollt werden muss */
 @media (max-width:520px){
@@ -564,6 +565,7 @@ function setFoto(blob, changed = false) {
   $("ocrStatus").textContent = blob ? "" : "Werte werden nach dem Foto automatisch gelesen.";
 }
 function resetForm() {
+  document.querySelectorAll("input.fehlt").forEach((el) => el.classList.remove("fehlt"));
   state.editId = null; $("editFlag").hidden = true; $("btnSave").textContent = "Fuhre speichern";
   state.fotoRemote = false;
   setFoto(null);
@@ -669,6 +671,16 @@ function parseSlip(text) {
   // Feuchte: „23,9 %“ – das Komma wird oft als 7, 1 oder Leerzeichen gelesen
   const fe = t.match(/Feucht\w*\s*[:.]?\s*(\d{2})\s*[,.]\s*(\d)/i) || t.match(/Feucht\w*\s*[:.]?\s*(\d{2})[71l|]?(\d)\s*[%°©]/i);
   if (fe) { const v = +(fe[1] + "." + fe[2]); if (v >= 10 && v <= 45) out.feuchte = v; }
+  // Messnummern („5617: 25,9 %“, „5618: 21,8 %“): die Feuchte ist ihr Mittelwert – zweite Quelle
+  const mess = [...t.matchAll(/(?<!\d)\d{3,4}\s*[:;.]\s*(\d{2})\s*[,.]\s*(\d)\s*[%°©8]/g)].map((m) => +(m[1] + "." + m[2])).filter((v) => v >= 10 && v <= 45);
+  if (mess.length >= 2) out.messMittel = Math.round((mess[0] + mess[1]) / 2 * 10) / 10;
+  if (out.feuchte == null) { // „23,9 %“ ohne lesbares Wort „Feuchtigkeit“, aber nicht aus einer Messnummern-Zeile
+    for (const line of t.split("\n")) {
+      if (/Abzug|Mess|\d{3,4}\s*[:;]/i.test(line)) continue;
+      const m = line.match(/(?<![\d,.])(\d{2})\s*[,.]\s*(\d)\s*[%°©]/);
+      if (m) { const v = +(m[1] + "." + m[2]); if (v >= 10 && v <= 45) { out.feuchte = v; break; } }
+    }
+  }
   const ab = t.match(/Abzug\s*[:.]?\s*(\d)\s*[,.'\/]?\s*(\d)\s*[%°©]?/i);
   if (ab) { const v = +(ab[1] + "." + ab[2]); if (v >= 0 && v <= 9.9) out.abzug = v; }
   // Kennzeichen wie „RI 737 GB“ (AT) oder „PA-AB 123“ (DE); bevorzugt die Zeile beim Wort „Kennzeichen“
@@ -692,6 +704,12 @@ function mergeReads(reads) {
     reads.forEach((r, i) => { if (r[k] != null) { const c = cnt.get(r[k]) || { n: 0, first: i }; c.n++; cnt.set(r[k], c); } });
     const best = [...cnt.entries()].sort((a, b) => b[1].n - a[1].n || a[1].first - b[1].first)[0];
     if (best) out[k] = best[0];
+  }
+  // Feuchte gegen den Mittelwert der Messnummern prüfen; fehlt sie, den Mittelwert nehmen
+  const mm = reads.map((r) => r.messMittel).filter((v) => v != null)[0];
+  if (mm != null) {
+    const passend = reads.map((r) => r.feuchte).filter((v) => v != null && Math.abs(v - mm) <= 0.15);
+    out.feuchte = passend.length ? passend[0] : (out.feuchte != null && Math.abs(out.feuchte - mm) <= 1.5 ? out.feuchte : mm);
   }
   const vals = (k) => [...new Set(reads.map((r) => r[k]).filter((v) => v != null))];
   const W1 = vals("w1"), W2 = vals("w2"), N = vals("netto");
@@ -781,6 +799,7 @@ async function runOcr() {
     fillForm({ ...merged, feldId: cur.feldId });
     if (found.netto != null && found.w1 != null && found.w2 != null && found.w1 - found.w2 !== found.netto) state.nettoManual = true;
     updateResult();
+    for (const k of OCR_KEYS) { const el = $(k); if (el) el.classList.toggle("fehlt", !el.value.trim()); }   // Fehlendes sichtbar machen
     st.textContent = `${gelesen} von 8 Werten gelesen (${Math.round(gelesen / 8 * 100)} %)` + (gelesen < 8 ? ". Fehlende bitte ergänzen." : ". Bitte kurz mit dem Schein vergleichen.");
   } catch (e) {
     if (run === ocrRun) st.textContent = "Werte konnten nicht gelesen werden. Bitte abtippen, das Foto wird gespeichert.";
@@ -1341,6 +1360,7 @@ document.querySelectorAll("nav.tabs [data-tab]").forEach((b) => b.addEventListen
 $("form").addEventListener("submit", saveForm);
 $("form").addEventListener("input", (e) => {
   if (e.target.id) state.touched.add(e.target.id);
+  e.target.classList && e.target.classList.remove("fehlt");
   if (e.target.id === "netto") state.nettoManual = e.target.value.trim() !== "";
   if (["w1", "w2"].includes(e.target.id) && !$("netto").value.trim()) state.nettoManual = false;
   updateResult();
