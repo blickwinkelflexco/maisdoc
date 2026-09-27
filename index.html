@@ -149,7 +149,10 @@ label.btn{position:relative}
 .kv div{display:flex;flex-direction:column;gap:3px;border-top:1px solid var(--line);padding-top:8px}
 .kv dt{font:500 11px/1.2 var(--f-mono);color:var(--muted);letter-spacing:.04em;margin:0}
 .kv dd{margin:0;font:600 18px/1.1 var(--f-mono);font-variant-numeric:tabular-nums}
-.formula{font:400 12px/1.5 var(--f-mono);color:var(--muted)}
+.formula{font:400 12px/1.5 var(--f-mono);color:var(--muted);border-top:1px solid var(--line);padding-top:8px}
+.res-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.info{min-height:28px;width:28px;padding:0;border-radius:50%;font:700 14px/1 var(--f-head);color:var(--ink-soft);background:transparent}
+.info[aria-expanded="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 
 /* Chips */
 .chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -331,14 +334,14 @@ input.fehlt{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn)}
       </div>
 
       <div class="result" aria-live="polite">
-        <span class="eyebrow">Trockenmenge je Hektar</span>
+        <div class="res-head"><span class="eyebrow">Trockenmenge je Hektar</span><button type="button" class="info" id="btnInfo" aria-expanded="false" aria-controls="rFormula" aria-label="Berechnung anzeigen">i</button></div>
         <div class="hero-num"><span class="v" id="rTmHa">–</span><span class="u">t / ha</span></div>
         <dl class="kv">
           <div><dt>Trockenmenge</dt><dd id="rTm">–</dd></div>
           <div><dt>Nassmenge / ha</dt><dd id="rNassHa">–</dd></div>
           <div><dt>TM (0 %) / ha</dt><dd id="rTm0Ha">–</dd></div>
         </dl>
-        <div class="formula" id="rFormula"></div>
+        <div class="formula" id="rFormula" hidden></div>
       </div>
 
       <div class="row">
@@ -1396,6 +1399,7 @@ $("form").addEventListener("input", (e) => {
   updateResult();
 });
 $("btnReset").addEventListener("click", () => resetForm());
+$("btnInfo").addEventListener("click", (e) => { const f = $("rFormula"); f.hidden = !f.hidden; e.currentTarget.setAttribute("aria-expanded", String(!f.hidden)); });
 $("feld").addEventListener("change", (e) => {
   const neu = e.target.value === "__neu";
   $("newFieldRow").hidden = !neu;
