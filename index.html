@@ -132,18 +132,20 @@ input.calc{background:transparent;border-style:dashed}
 .ha-box input{font-size:22px;font-weight:700;border-color:var(--mais)}
 
 /* Foto */
-.photo{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center}
-.thumb{width:96px;height:120px;border-radius:4px;border:1px dashed var(--slip-line);background:var(--surface);display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--muted);font:500 11px/1.2 var(--f-mono);text-align:center;padding:6px}
+.photo{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:start}
+.thumb{width:120px;height:156px;border-radius:4px;border:1px dashed var(--slip-line);background:var(--surface);display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--muted);font:500 11px/1.2 var(--f-mono);text-align:center;padding:6px}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 label.btn input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 label.btn{position:relative}
 #ocrStatus{font:400 12px/1.35 var(--f-mono);color:var(--ink-soft)}
-.ocr{display:flex;align-items:center;gap:10px}
-.ring{width:46px;height:46px;flex:none}
+.ocr{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ocr-btns{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
+.ocr-btns button{width:100%;max-width:180px}
+.ring{width:64px;height:64px;flex:none}
 .ring circle{fill:none;stroke-width:5}
 .ring .trk{stroke:var(--line)}
 .ring .bar{stroke:var(--mais);stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;stroke-dasharray:113.1;stroke-dashoffset:113.1;transition:stroke-dashoffset .35s ease,stroke .2s}
-.ring text{font:700 11px/1 var(--f-head);fill:var(--ink);text-anchor:middle;dominant-baseline:central}
+.ring text{font:700 10.5px/1 var(--f-head);fill:var(--ink);text-anchor:middle;dominant-baseline:central}
 .ring.warn .bar{stroke:var(--warn)}
 .ring.busy{animation:ringPulse 1.6s ease-in-out infinite}
 @keyframes ringPulse{50%{opacity:.75}}
@@ -256,8 +258,8 @@ input.fehlt{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn)}
   input,select,textarea{min-height:40px;padding:7px 9px}
   .ha-box{padding:10px}
   .ha-box input{font-size:19px}
-  .photo{grid-template-columns:60px 1fr;gap:10px}
-  .thumb{width:60px;height:76px;font-size:10px;padding:4px}
+  .photo{grid-template-columns:104px 1fr;gap:10px}
+  .thumb{width:104px;height:136px;font-size:10px;padding:0}
   .photo .btn-mais{min-height:42px;padding:9px 10px;font-size:14px}
   #ocrStatus{font-size:11.5px}
   .result{padding:12px;gap:8px}
@@ -305,17 +307,17 @@ input.fehlt{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn)}
               Wiegeschein fotografieren
               <input type="file" id="foto" accept="image/*" capture="environment">
             </label>
-            <div class="row" style="gap:6px">
-              <button type="button" class="btn-sm" id="btnOcr" hidden>Erneut lesen</button>
-              <button type="button" class="btn-sm btn-ghost" id="btnFotoWeg" hidden>Foto entfernen</button>
-            </div>
             <div class="ocr">
+              <div class="ocr-btns">
+                <button type="button" class="btn-sm" id="btnOcr" hidden>Erneut lesen</button>
+                <button type="button" class="btn-sm btn-ghost" id="btnFotoWeg" hidden>Foto entfernen</button>
+              </div>
               <svg class="ring" id="ocrRing" viewBox="0 0 44 44" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Fortschritt Texterkennung" hidden>
                 <circle class="trk" cx="22" cy="22" r="18"/><circle class="bar" id="ocrArc" cx="22" cy="22" r="18"/>
                 <text id="ocrPct" x="22" y="22.5">0 %</text>
               </svg>
-              <div id="ocrStatus">Werte werden nach dem Foto automatisch gelesen.</div>
             </div>
+            <div id="ocrStatus">Werte werden nach dem Foto automatisch gelesen.</div>
           </div>
         </div>
 
