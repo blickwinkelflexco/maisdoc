@@ -238,6 +238,17 @@ input.fehlt{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn)}
 .aw .m{font:400 12px/1.3 var(--f-ui);color:var(--muted);font-variant-numeric:tabular-nums}
 .aw .b{grid-column:1/-1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
 .aw .b i{display:block;height:100%;background:var(--mais);border-radius:0 3px 3px 0}
+.block{background:var(--slip);border:1px solid var(--slip-line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.block h3{margin:0}
+details.block summary{padding-block:2px;margin:0}
+details.block[open] summary{margin-bottom:8px}
+.aw li.auf{cursor:pointer}
+.aw .n::after{content:"";display:inline-block;width:7px;height:7px;margin-left:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-3px) rotate(45deg);transition:transform .15s}
+.aw li.open .n::after{transform:translateY(0) rotate(-135deg)}
+.aw .fu{grid-column:1/-1;list-style:none;margin:6px 0 0;padding:0;border-top:1px dashed var(--line)}
+.aw .fu li{display:flex;justify-content:space-between;gap:10px;padding:7px 2px;border-bottom:0;font:500 14px/1.2 var(--f-ui);font-variant-numeric:tabular-nums;cursor:pointer}
+.aw .fu li span:last-child{font-weight:600}
+.aw .fu li:hover{background:var(--surface)}
 .fv{list-style:none;margin:0 0 10px;padding:0}
 .fv li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
 .fv li span{color:var(--muted);font-size:12px}
@@ -393,7 +404,7 @@ input.fehlt{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn)}
     <div class="aw-total" id="awTotal"></div>
     <ol class="aw" id="awList"></ol>
 
-    <details class="more" id="felderVerwalten"><summary>Felder verwalten</summary>
+    <details class="more block" id="felderVerwalten"><summary>Felder verwalten</summary>
       <ul class="fv" id="fieldCards"></ul>
       <div class="row">
         <input type="text" id="addFieldName" placeholder="Neues Feld" style="flex:1 1 160px">
@@ -402,7 +413,7 @@ input.fehlt{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn)}
       </div>
     </details>
 
-    <hr class="sep">
+    <div class="block">
     <h3>Einstellungen</h3>
     <div class="grid">
       <label class="f">Trocknung<input type="text" id="setTrocknung" autocomplete="organization" ></label>
@@ -414,14 +425,16 @@ input.fehlt{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn)}
         Abzug für Bruchkorn und Besatz vom Gewicht abziehen (Nassmenge)
       </label>
     </div>
+    </div>
 
-    <hr class="sep">
+    <div class="block">
     <h3>Daten sichern</h3>
     <p class="note" id="backupNote"></p>
     <div class="row">
       <button type="button" id="btnCsv">Tabelle (CSV)</button>
       <button type="button" id="btnJson">Sicherung (JSON)</button>
       <label class="btn" for="importFile">Sicherung einlesen<input type="file" id="importFile" accept="application/json,.json"></label>
+    </div>
     </div>
 
     <footer class="legal">
@@ -1009,7 +1022,7 @@ function openDetail(id) {
 
 /* ---------------- Felder-Ansicht ---------------- */
 // Auswertung: Rangliste nach Feld oder Sorte, Erntejahr wählbar. t/ha = Σ Trockenmenge ÷ Σ ha.
-state.awBy = "feld"; state.awYear = null;
+state.awBy = "feld"; state.awYear = null; state.awOpen = new Set();
 function renderFelder() {
   const ys = [...new Set(state.lieferungen.map((r) => r.jahr))].sort((a, b) => b - a);
   if (state.awYear !== "alle" && !ys.includes(state.awYear)) state.awYear = ys[0] ?? "alle";
@@ -1032,10 +1045,16 @@ function renderFelder() {
   $("awList").innerHTML = rows.length ? rows.map((r) => {
     const pct = r.a.tmHa ? Math.max(2, Math.round(r.a.tmHa / max * 100)) : 0;
     const tip = `${r.name}: ${r.a.tmHa != null ? fmt(r.a.tmHa / 1000, 2) + " t/ha" : "ohne Hektar"}, ${fmt(r.a.tm / 1000, 1)} t trocken auf ${fmt(r.a.ha, 2)} ha, Ø Feuchte ${r.a.feuchte != null ? fmt(r.a.feuchte, 1) + " %" : "–"}`;
-    return `<li title="${esc(tip)}"><span class="n">${esc(r.name)}</span>
+    const offen = state.awOpen.has(state.awBy + ":" + r.k);
+    const fuhren = offen ? groups.get(r.k).slice().sort((a, b) => (b.datum || "").localeCompare(a.datum || "")).map((f) => {
+      const c = calc(f) || {};
+      const d = f.datum ? new Date(f.datum + "T12:00:00").toLocaleDateString("de-AT", { day: "2-digit", month: "2-digit", year: "numeric" }) : "–";
+      return `<li data-id="${esc(f.id)}"><span>${d}</span><span>${c.tm != null ? fmt(c.tm / 100, 2) + " dt" : "–"}</span></li>`;
+    }).join("") : "";
+    return `<li class="auf${offen ? " open" : ""}" data-k="${esc(r.k)}" title="${esc(tip)}" aria-expanded="${offen}"><span class="n">${esc(r.name)}</span>
       <span class="v">${r.a.tmHa != null ? fmt(r.a.tmHa / 1000, 2) : "–"}<small>t/ha</small></span>
       <span class="m">${fmt(r.a.ha, 2)} ha · ${fmt(r.a.tm / 1000, 1)} t · ${r.a.feuchte != null ? fmt(r.a.feuchte, 1) + " %" : "–"} · ${r.a.n} ${r.a.n === 1 ? "Fuhre" : "Fuhren"}</span>
-      <span class="b" aria-hidden="true"><i style="width:${pct}%"></i></span></li>`;
+      <span class="b" aria-hidden="true"><i style="width:${pct}%"></i></span>${offen ? `<ul class="fu">${fuhren}</ul>` : ""}</li>`;
   }).join("") : `<li class="empty" style="display:block">Noch keine Fuhre.</li>`;
   // Felder verwalten
   const used = new Set(state.lieferungen.map((r) => r.feldId));
@@ -1045,6 +1064,13 @@ function renderFelder() {
   const sorten = [...new Set(state.lieferungen.map((r) => (r.sorte || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de"));
   $("sortenListe").innerHTML = sorten.map((x) => `<option value="${esc(x)}">`).join("");
 }
+$("awList").addEventListener("click", (e) => {
+  const fu = e.target.closest(".fu li[data-id]"); if (fu) { openDetail(fu.dataset.id); return; }
+  const li = e.target.closest("li.auf"); if (!li) return;
+  const key = state.awBy + ":" + li.dataset.k;
+  state.awOpen.has(key) ? state.awOpen.delete(key) : state.awOpen.add(key);
+  renderFelder();
+});
 $("yearChipsA").addEventListener("click", (e) => { const b = e.target.closest("[data-ay]"); if (b) { state.awYear = b.dataset.ay === "alle" ? "alle" : +b.dataset.ay; renderFelder(); } });
 document.querySelectorAll("[data-by]").forEach((b) => b.addEventListener("click", () => { state.awBy = b.dataset.by; renderFelder(); }));
 
