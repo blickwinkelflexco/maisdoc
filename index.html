@@ -138,6 +138,19 @@ input.calc{background:transparent;border-style:dashed}
 label.btn input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 label.btn{position:relative}
 #ocrStatus{font:400 12px/1.35 var(--f-mono);color:var(--ink-soft)}
+.ocr{display:flex;align-items:center;gap:10px}
+.ring{width:46px;height:46px;flex:none}
+.ring circle{fill:none;stroke-width:5}
+.ring .trk{stroke:var(--line)}
+.ring .bar{stroke:var(--mais);stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;stroke-dasharray:113.1;stroke-dashoffset:113.1;transition:stroke-dashoffset .35s ease,stroke .2s}
+.ring text{font:700 11px/1 var(--f-head);fill:var(--ink);text-anchor:middle;dominant-baseline:central}
+.ring.warn .bar{stroke:var(--warn)}
+.ring.busy{animation:ringPulse 1.6s ease-in-out infinite}
+@keyframes ringPulse{50%{opacity:.75}}
+.thumb{position:relative}
+.thumb.scan::after{content:"";position:absolute;left:0;right:0;top:-35%;height:35%;background:linear-gradient(to bottom,transparent,rgba(106,180,62,.55),transparent);animation:scan 1.3s linear infinite}
+@keyframes scan{to{top:100%}}
+@media (prefers-reduced-motion:reduce){.thumb.scan::after,.ring.busy{animation:none}.ring .bar{transition:none}}
 
 /* Ergebnis */
 .result{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px}
@@ -296,7 +309,13 @@ input.fehlt{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn)}
               <button type="button" class="btn-sm" id="btnOcr" hidden>Erneut lesen</button>
               <button type="button" class="btn-sm btn-ghost" id="btnFotoWeg" hidden>Foto entfernen</button>
             </div>
-            <div id="ocrStatus">Werte werden nach dem Foto automatisch gelesen.</div>
+            <div class="ocr">
+              <svg class="ring" id="ocrRing" viewBox="0 0 44 44" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Fortschritt Texterkennung" hidden>
+                <circle class="trk" cx="22" cy="22" r="18"/><circle class="bar" id="ocrArc" cx="22" cy="22" r="18"/>
+                <text id="ocrPct" x="22" y="22.5">0 %</text>
+              </svg>
+              <div id="ocrStatus">Werte werden nach dem Foto automatisch gelesen.</div>
+            </div>
           </div>
         </div>
 
@@ -589,6 +608,7 @@ function setFoto(blob, changed = false) {
   $("btnOcr").hidden = !blob;
   $("btnFotoWeg").hidden = !blob;
   $("ocrStatus").textContent = blob ? "" : "Werte werden nach dem Foto automatisch gelesen.";
+  $("ocrRing").setAttribute("hidden", ""); $("thumb").classList.remove("scan");
 }
 function resetForm() {
   document.querySelectorAll("input.fehlt").forEach((el) => el.classList.remove("fehlt"));
@@ -796,18 +816,29 @@ function getOcrWorker() {
   }
   return ocrWorkerP;
 }
+// Fortschrittsring: pct 0–100, mitte = Text im Ring, art = "busy" | "ok" | "warn"
+function ocrRing(pct, mitte, art) {
+  const ring = $("ocrRing"); ring.removeAttribute("hidden");   // SVG kennt .hidden nicht – Attribut direkt setzen
+  ring.classList.toggle("busy", art === "busy"); ring.classList.toggle("warn", art === "warn");
+  $("ocrArc").style.strokeDashoffset = String(113.1 * (1 - Math.max(0, Math.min(100, pct)) / 100));
+  $("ocrPct").textContent = mitte; ring.setAttribute("aria-valuenow", String(Math.round(pct)));
+  $("thumb").classList.toggle("scan", art === "busy");
+}
+const PASS_ANTEIL = [0.7, 0.2, 0.07, 0.03];   // erster Durchgang reicht meist – er füllt den Ring zu 70 %
 async function runOcr() {
   if (!state.foto) return;
   const run = ++ocrRun, foto = state.foto, quelle = state.fotoOrig || state.foto;
   const st = $("ocrStatus"); const btn = $("btnOcr");
   btn.hidden = true;
-  st.textContent = "Lese Werte vom Foto …";
+  st.textContent = "Lese Wiegeschein …";
+  ocrRing(0, "0 %", "busy");
   try {
     const worker = await getOcrWorker();
     const reads = [];
     let m = {};
     for (let i = 0; i < OCR_PASSES.length; i++) {
-      ocrProgress = (p) => { if (run === ocrRun) st.textContent = `Lese Werte vom Foto … ${Math.round(((i + p) / OCR_PASSES.length) * 100)} %`; };
+      const basis = PASS_ANTEIL.slice(0, i).reduce((a, b) => a + b, 0);
+      ocrProgress = (p) => { if (run === ocrRun) { const pct = (basis + PASS_ANTEIL[i] * p) * 100; ocrRing(pct, `${Math.round(pct)} %`, "busy"); } };
       const bild = await prepOcr(quelle, OCR_PASSES[i]);
       const { data } = await worker.recognize(bild);
       if (run !== ocrRun || foto !== state.foto) return;   // inzwischen neues Foto
@@ -818,7 +849,7 @@ async function runOcr() {
     const found = { ...m };
     const gelesen = OCR_KEYS.filter((k) => found[k] != null).length;   // von 8 möglichen Werten am Wiegeschein
     for (const k of Object.keys(found)) if (state.touched.has(k)) delete found[k];  // eigene Eingaben bleiben
-    if (!gelesen) { st.textContent = "0 von 8 Werten gelesen (0 %). Bitte abtippen, das Foto wird gespeichert."; return; }
+    if (!gelesen) { ocrRing(0, "0/8", "warn"); st.textContent = "Keine Werte erkannt. Bitte abtippen, das Foto wird gespeichert."; return; }
     const cur = readForm();
     const merged = { ...cur, ...found };
     if (found.w1 != null && found.w2 != null) state.nettoManual = false;
@@ -826,9 +857,10 @@ async function runOcr() {
     if (found.netto != null && found.w1 != null && found.w2 != null && found.w1 - found.w2 !== found.netto) state.nettoManual = true;
     updateResult();
     for (const k of OCR_KEYS) { const el = $(k); if (el) el.classList.toggle("fehlt", !el.value.trim()); }   // Fehlendes sichtbar machen
-    st.textContent = `${gelesen} von 8 Werten gelesen (${Math.round(gelesen / 8 * 100)} %)` + (gelesen < 8 ? ". Fehlende bitte ergänzen." : ". Bitte kurz mit dem Schein vergleichen.");
+    ocrRing(gelesen / 8 * 100, `${gelesen}/8`, gelesen === 8 ? "ok" : "warn");
+    st.textContent = gelesen === 8 ? "Alle 8 Werte gelesen. Bitte kurz mit dem Schein vergleichen." : `${gelesen} von 8 Werten gelesen. Orange markierte bitte ergänzen.`;
   } catch (e) {
-    if (run === ocrRun) st.textContent = "Werte konnten nicht gelesen werden. Bitte abtippen, das Foto wird gespeichert.";
+    if (run === ocrRun) { ocrRing(0, "–", "warn"); st.textContent = "Werte konnten nicht gelesen werden. Bitte abtippen, das Foto wird gespeichert."; }
   } finally { if (run === ocrRun) btn.hidden = !state.foto; }
 }
 
