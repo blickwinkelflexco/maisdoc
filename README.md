@@ -5,7 +5,7 @@ Wiegeschein bei der Ablieferung fotografieren, Hektar der Fuhre und Feld
 eintragen, Trockenmasseertrag je Hektar sehen, Fuhren über die Jahre sammeln.
 
 Eigene Anwendung der BLICKWINKEL FlexCo, kostenlos für die Nutzer, unabhängig von den
-Trocknungsanlagen. Online: https://maisdoc.vercel.app (später https://maisdoc.blickwinkel.pro).
+Trocknungsanlagen. Online: https://maisdoc.blickwinkel.pro (auch https://maisdoc.vercel.app).
 
 **Testbetrieb:** Suchmaschinen sind ausgesperrt (`robots.txt`, `X-Robots-Tag` in `vercel.json`).
 Vor dem offiziellen Start beides entfernen.
@@ -19,15 +19,16 @@ Erste unterstützte Trocknung: Wiegescheine der Trocknung Reding (Format des Bei
 |---|---|---|
 | App | `index.html` | Oberfläche, Rechnung, Speicher im Gerät (IndexedDB), Abgleich mit dem Konto |
 | Offline | `sw.js`, `manifest.webmanifest`, Icons | installierbar, läuft an der Waage auch ohne Netz |
-| Konto | `api/auth.js` | registrieren, anmelden, abmelden, Passwort ändern, Konto löschen |
+| Konto | `api/auth.js` | registrieren, anmelden, abmelden, Passwort ändern und vergessen, Konto löschen |
+| E-Mail | `api/_mail.js` | Versand über SMTP (Link zum Passwort-Rücksetzen) |
 | Abgleich | `api/sync.js` | Fuhren, Felder, Einstellungen zwischen Geräten |
 | Fotos | `api/foto.js` | Wiegeschein-Fotos hoch- und herunterladen (nur eigene) |
 | Gemeinsam | `api/_lib.js` | Datenbank, Tabellen (legt sie selbst an), Passwörter, Sitzungen |
 
 Kein Build. Vercel liefert die statischen Dateien aus und macht aus `api/*.js`
-Serverfunktionen (Node, Region Frankfurt `fra1`). Einzige Abhängigkeit: `pg`.
+Serverfunktionen (Node, Region Frankfurt `fra1`). Abhängigkeiten: `pg`, `nodemailer`.
 
-Recht und Datenschutz: `impressum.html`, `datenschutz.html` (Stand 24.09.2026).
+Recht und Datenschutz: `impressum.html`, `datenschutz.html` (Stand 28.09.2026).
 Schriften (`fonts/`) und Texterkennung (`ocr/`: tesseract.js 5.1.1, Sprachdaten deu
 4.0.0_best_int) liegen auf dem eigenen Server, damit beim Öffnen keine Daten an Google
 oder CDNs gehen. Die Content-Security-Policy in `vercel.json` erlaubt nur die eigene Adresse.
@@ -44,8 +45,29 @@ oder CDNs gehen. Die Content-Security-Policy in `vercel.json` erlaubt nur die ei
 - Fotos liegen in der Datenbank (Tabelle `fotos`), abrufbar nur für das eigene Konto.
 - Abmelden: Daten auf dem Gerät behalten oder Gerät leeren. Konto löschen entfernt
   alles auf dem Server.
-- **Passwort vergessen:** `DATABASE_URL=… node scripts/passwort-zuruecksetzen.mjs <E-Mail>`
-  erzeugt ein Einmal-Passwort und meldet alle Geräte ab. Später: Rücksetzen per E-Mail-Link.
+- **Passwort vergessen:** Link per E-Mail (`api/auth.js`, Aktionen `reset-request` und `reset`).
+  Der Link `…/#reset=<Schlüssel>` gilt 60 Minuten und nur einmal, höchstens 3 Links je Konto und Stunde.
+  Beim Einlösen werden alle Geräte abgemeldet. Die Antwort ist gleich, ob es das Konto gibt oder nicht.
+  Ohne eingerichteten Mailversand zeigt die App den Hinweis auf info@blickwinkel.pro; dann von Hand:
+  `DATABASE_URL=… node scripts/passwort-zuruecksetzen.mjs <E-Mail>` (Einmal-Passwort, meldet alle Geräte ab).
+
+### Mailversand einrichten (für „Passwort vergessen“)
+
+Vercel → Projekt `maisdoc` → Settings → Environment Variables (Production), danach Redeploy:
+
+| Variable | Microsoft 365 (info@blickwinkel.pro) | Resend |
+|---|---|---|
+| `SMTP_HOST` | `smtp.office365.com` | `smtp.resend.com` |
+| `SMTP_PORT` | `587` | `587` |
+| `SMTP_USER` | `info@blickwinkel.pro` | `resend` |
+| `SMTP_PASS` | Passwort bzw. App-Kennwort des Postfachs | API-Schlüssel |
+| `MAIL_FROM` | `info@blickwinkel.pro` | `info@blickwinkel.pro` (Domain in Resend bestätigt) |
+
+Microsoft 365: im Admin Center beim Benutzer info@blickwinkel.pro → E-Mail → „E-Mail-Apps verwalten“ →
+**Authentifiziertes SMTP** einschalten. Mit Zwei-Faktor-Anmeldung ein App-Kennwort verwenden.
+`APP_URL` (Adresse im Link) steht ohne Angabe auf `https://maisdoc.blickwinkel.pro`.
+Nach dem Einrichten den Versanddienst in `datenschutz.html` unter „Wer die Daten für uns verarbeitet“ ergänzen.
+Test lokal: `SMTP_HOST=127.0.0.1 SMTP_PORT=2526 MAIL_FROM=x@y.at npm run dev` und `SMTP_TEST_PORT=2526 npm test`.
 
 ### Einrichtung der Datenbank (einmalig)
 
@@ -92,7 +114,7 @@ Roboto (Text), Radius 6 px. Dunkelmodus in der Palette von Mission Control
 ```
 npm install
 DATABASE_URL=postgres://… npm run dev     # http://localhost:3000
-BASE=http://localhost:3000 npm test       # 28 API-Prüfungen (Konto, Abgleich, Fotos, Rechte)
+BASE=http://localhost:3000 npm test       # API-Prüfungen (Konto, Passwort vergessen, Abgleich, Fotos, Rechte)
 ```
 
 Bei Änderungen an `index.html` die Cache-Version in `sw.js` hochzählen.
@@ -117,8 +139,7 @@ Abgeleitete Werte (TM, t/ha) werden nie gespeichert, immer gerechnet.
 
 ## Nächste Schritte
 
-1. Eigene Domain `maisdoc.blickwinkel.pro` (Vercel → Domains, CNAME beim DNS von blickwinkel.pro).
-2. Passwort-Rücksetzen per E-Mail-Link (braucht einen Mail-Dienst, z. B. Resend).
-3. Weitere Trocknungen anschließen: je Trocknung eine Leseregel für ihren Wiegeschein; Auswahl der
+1. Mailversand einrichten (siehe oben), damit „Passwort vergessen“ Links verschickt.
+2. Weitere Trocknungen anschließen: je Trocknung eine Leseregel für ihren Wiegeschein; Auswahl der
    Trocknung je Fuhre. Später anonymer Vergleich „mein Ertrag vs. Durchschnitt“ nur mit Zustimmung.
-4. Feldgrenzen/Karte, Sorte und Aussaat je Feld, Ertrag je Sorte.
+3. Feldgrenzen/Karte, Sorte und Aussaat je Feld, Ertrag je Sorte.

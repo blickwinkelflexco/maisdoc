@@ -102,6 +102,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .btn-ghost{background:transparent}
 .btn-danger{color:var(--bad);border-color:var(--bad);background:transparent}
 .btn-sm{min-height:34px;padding:7px 10px;font-size:13px}
+.btn-link{background:none;border:0;min-height:0;padding:4px 0;font:500 13px/1.3 var(--f-body);color:var(--ink-soft);text-decoration:underline;justify-content:flex-start}
 button:disabled{opacity:.5;cursor:not-allowed}
 
 /* Tabs */
@@ -1163,7 +1164,7 @@ function renderAll() { renderFieldSelect($("feld").value); renderVerlauf(); rend
    Einstellungen abgeglichen: geänderte Einträge tragen "dirty", Löschungen "geloescht".
    Konflikt: der jüngere Stand ("geaendert") gewinnt.
 ------------------------------------------------------ */
-const Acct = { available: false, user: null, busy: false, again: false, timer: null, status: "local", msg: "", last: null };
+const Acct = { available: false, mail: false, user: null, busy: false, again: false, timer: null, status: "local", msg: "", last: null };
 
 async function reloadState() {
   const all = (await Store.all("lieferungen")) || [];
@@ -1331,6 +1332,7 @@ async function initAccount() {
   try {
     const r = await api("/api/auth");
     Acct.available = r.ready !== false;          // ohne Datenbank bleibt der Konto-Knopf weg
+    Acct.mail = !!r.mail;                        // Passwort-Link per E-Mail möglich
     if (r.user) { Acct.user = r.user; await Store.put("meta", r.user, "user"); await syncNow(); }
     else if (cached) await sessionLost();
     else setAcct("local");
@@ -1343,10 +1345,64 @@ async function initAccount() {
 }
 
 /* ---------- Konto-Dialog ---------- */
-function openAccount(mode) {
+function openAccount(mode, token) {
   const dlg = $("dlg");
   const u = Acct.user;
-  if (!u) {
+  if (mode === "reset") {
+    // Aus dem Link in der E-Mail: neues Passwort setzen
+    $("dlgBody").innerHTML = `
+      <div class="row" style="justify-content:space-between"><h2>Neues Passwort</h2><button type="button" class="btn-sm btn-ghost" data-act="close">Schließen</button></div>
+      <form id="resetForm" class="stack" novalidate>
+        <label class="f">Neues Passwort <span class="u">mindestens 8 Zeichen</span><input id="rPw" type="password" autocomplete="new-password" required></label>
+        <div class="err" id="rErr" hidden></div>
+        <button type="submit" class="btn-primary">Passwort speichern</button>
+        <button type="button" class="btn-link" data-act="mode-forgot" id="rNeu" hidden>Neuen Link anfordern</button>
+      </form>`;
+    dlg.onclick = (e) => {
+      const a = e.target.closest("[data-act]"); if (!a) { if (e.target === dlg) dlg.close(); return; }
+      if (a.dataset.act === "close") dlg.close();
+      if (a.dataset.act === "mode-forgot") openAccount("forgot");
+    };
+    $("resetForm").onsubmit = async (ev) => {
+      ev.preventDefault();
+      const err = $("rErr"); err.hidden = true;
+      const btn = ev.target.querySelector("button[type=submit]"); btn.disabled = true;
+      try {
+        const r = await api("/api/auth?action=reset", { token, password: $("rPw").value });
+        dlg.close(); toast("Passwort gespeichert, angemeldet");
+        await afterLogin(r.user);
+      } catch (e) {
+        err.textContent = e.offline ? "Keine Verbindung. Bitte später erneut versuchen." : e.message;
+        err.hidden = false; $("rNeu").hidden = e.code !== "bad_token";
+      } finally { btn.disabled = false; }
+    };
+  } else if (mode === "forgot" && !u) {
+    $("dlgBody").innerHTML = `
+      <div class="row" style="justify-content:space-between"><h2>Passwort vergessen</h2><button type="button" class="btn-sm btn-ghost" data-act="close">Schließen</button></div>
+      ${Acct.mail ? `<form id="forgotForm" class="stack" novalidate>
+        <label class="f">E-Mail deines Kontos<input id="fEmail" type="email" autocomplete="email" inputmode="email" required></label>
+        <div class="err" id="fErr" hidden></div>
+        <button type="submit" class="btn-primary">Link senden</button>
+      </form>` : `<p class="note" id="fInfo">Schreib von der E-Mail-Adresse deines Kontos an info@blickwinkel.pro, wir setzen es zurück.</p>`}
+      <button type="button" class="btn-link" data-act="mode-login">Zurück zur Anmeldung</button>`;
+    dlg.onclick = (e) => {
+      const a = e.target.closest("[data-act]"); if (!a) { if (e.target === dlg) dlg.close(); return; }
+      if (a.dataset.act === "close") dlg.close();
+      if (a.dataset.act === "mode-login") openAccount("login");
+    };
+    if (Acct.mail) $("forgotForm").onsubmit = async (ev) => {
+      ev.preventDefault();
+      const err = $("fErr"); err.hidden = true;
+      const btn = ev.target.querySelector("button[type=submit]"); btn.disabled = true;
+      try {
+        await api("/api/auth?action=reset-request", { email: $("fEmail").value });
+        ev.target.outerHTML = `<p class="note" id="fInfo">Wenn es zu dieser E-Mail ein Konto gibt, kommt in wenigen Minuten ein Link. Er gilt eine Stunde. Auch im Spam-Ordner nachsehen.</p>`;
+      } catch (e) {
+        if (e.code === "no_mail") { Acct.mail = false; return openAccount("forgot"); }
+        err.textContent = e.offline ? "Keine Verbindung. Bitte später erneut versuchen." : e.message; err.hidden = false;
+      } finally { btn.disabled = false; }
+    };
+  } else if (!u) {
     mode = mode || "login";
     $("dlgBody").innerHTML = `
       <div class="row" style="justify-content:space-between"><h2>Konto</h2><button type="button" class="btn-sm btn-ghost" data-act="close">Schließen</button></div>
@@ -1362,12 +1418,13 @@ function openAccount(mode) {
         <div class="err" id="aErr" hidden></div>
         <button type="submit" class="btn-primary">${mode === "reg" ? "Konto anlegen" : "Anmelden"}</button>
       </form>
-      <p class="note">${mode === "login" ? "Passwort vergessen? Schreib von der E-Mail-Adresse deines Kontos an info@blickwinkel.pro, wir setzen es zurück." : "Für das Konto speichern wir E-Mail, Name, Fuhren, Felder und Fotos, um sie dir auf deinen Geräten anzuzeigen. Du kannst das Konto jederzeit mit allen Daten löschen. Details: <a href=\"datenschutz.html\">Datenschutzerklärung</a>."}</p>`;
+      ${mode === "login" ? `<button type="button" class="btn-link" data-act="mode-forgot">Passwort vergessen?</button>` : `<p class="note">Für das Konto speichern wir E-Mail, Name, Fuhren, Felder und Fotos, um sie dir auf deinen Geräten anzuzeigen. Du kannst das Konto jederzeit mit allen Daten löschen. Details: <a href="datenschutz.html">Datenschutzerklärung</a>.</p>`}`;
     dlg.onclick = (e) => {
       const a = e.target.closest("[data-act]"); if (!a) { if (e.target === dlg) dlg.close(); return; }
       if (a.dataset.act === "close") dlg.close();
       if (a.dataset.act === "mode-login") openAccount("login");
       if (a.dataset.act === "mode-reg") openAccount("reg");
+      if (a.dataset.act === "mode-forgot") { const em = $("aEmail").value; openAccount("forgot"); if ($("fEmail")) $("fEmail").value = em; }
     };
     $("acctForm").onsubmit = async (ev) => {
       ev.preventDefault();
@@ -1448,6 +1505,15 @@ function openAccount(mode) {
 }
 $("btnKonto").addEventListener("click", () => openAccount());
 
+// Link aus der Rücksetz-E-Mail: …/#reset=<token>. Token sofort aus der Adresszeile nehmen.
+function checkResetLink() {
+  const m = location.hash.match(/^#reset=([A-Za-z0-9_-]{20,})$/);
+  if (!m) return;
+  try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { location.hash = ""; }
+  openAccount("reset", m[1]);
+}
+window.addEventListener("hashchange", checkResetLink);
+
 /* ---------------- Ereignisse ---------------- */
 document.querySelectorAll("nav.tabs [data-tab]").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 $("form").addEventListener("submit", saveForm);
@@ -1519,6 +1585,7 @@ $("importFile").addEventListener("change", (e) => { const f = e.target.files && 
   const t = safeLS("get", "tab");
   if (t && ["erfassen", "verlauf", "felder"].includes(t)) switchTab(t);
   initAccount();
+  checkResetLink();
 })();
 </script>
 </body>

@@ -12,6 +12,32 @@ function client() {
   };
 }
 const email = `test${Date.now()}@example.at`;
+
+// Minimaler SMTP-Empfänger für den Test: sammelt jede Mail (Umschlag + Inhalt) als Text.
+async function smtpSink(port) {
+  const net = await import("node:net");
+  const mails = [];
+  const srv = net.createServer((c) => {
+    let buf = "", data = false, cur = "";
+    c.write("220 test\r\n");
+    c.on("data", (d) => {
+      buf += d.toString("utf8");
+      let i;
+      while ((i = buf.indexOf("\r\n")) >= 0) {
+        const line = buf.slice(0, i); buf = buf.slice(i + 2);
+        if (data) { if (line === ".") { data = false; mails.push(cur.replace(/=\n/g, "").replace(/=3D/g, "=")); cur = ""; c.write("250 ok\r\n"); } else cur += line + "\n"; continue; }
+        cur += line + "\n";
+        if (/^EHLO/i.test(line)) c.write("250-test\r\n250 8BITMIME\r\n");
+        else if (/^DATA/i.test(line)) { data = true; c.write("354 go\r\n"); }
+        else if (/^QUIT/i.test(line)) { c.write("221 bye\r\n"); c.end(); }
+        else c.write("250 ok\r\n");
+      }
+    });
+  });
+  await new Promise((r) => srv.listen(port, "127.0.0.1", r));
+  mails.close = () => srv.close();
+  return mails;
+}
 const A = client(), B = client(), X = client();
 
 let r = await A("/api/auth");                                   ok(r.data.user === null, "ohne Anmeldung kein Benutzer");
@@ -67,6 +93,29 @@ r = await A("/api/auth?action=password", { old: "maisfeld2026", password: "neues
 r = await A("/api/auth?action=logout", {});                     ok(r.status === 200, "abgemeldet");
 r = await A("/api/auth");                                       ok(r.data.user === null, "Sitzung beendet");
 r = await A("/api/auth?action=login", { email, password: "neuesPasswort1" }); ok(r.status === 200, "Anmeldung mit neuem Passwort");
+
+// Passwort vergessen. Voller Durchlauf nur mit SMTP_TEST_PORT (Server mit SMTP_HOST=127.0.0.1 und diesem Port starten).
+r = await X("/api/auth");
+if (!r.data.mail) {
+  r = await X("/api/auth?action=reset-request", { email });   ok(r.status === 503 && r.data.code === "no_mail", "ohne Mailversand: Rücksetzen meldet no_mail");
+} else if (process.env.SMTP_TEST_PORT) {
+  const mails = await smtpSink(Number(process.env.SMTP_TEST_PORT));
+  r = await X("/api/auth?action=reset-request", { email: "gibtsnicht@example.at" }); ok(r.status === 200 && mails.length === 0, "unbekannte E-Mail: gleiche Antwort, keine Mail");
+  r = await X("/api/auth?action=reset-request", { email: email.toUpperCase() }); ok(r.status === 200 && mails.length === 1, "Rücksetz-Mail verschickt");
+  const token = (mails[0].match(/#reset=([A-Za-z0-9_-]+)/) || [])[1];
+  ok(!!token && mails[0].includes(`RCPT TO:<${email}>`), "Mail geht an die Konto-Adresse und enthält den Link");
+  r = await X("/api/auth?action=reset", { token, password: "kurz" });            ok(r.status === 400, "zu kurzes neues Passwort abgelehnt");
+  r = await X("/api/auth?action=reset", { token: "falsch-falsch-falsch-falsch", password: "zurueckgesetzt1" }); ok(r.status === 400 && r.data.code === "bad_token", "falscher Link abgelehnt");
+  r = await X("/api/auth?action=reset", { token, password: "zurueckgesetzt1" }); ok(r.status === 200 && r.data.user.email === email, "Passwort per Link gesetzt, angemeldet");
+  r = await X("/api/sync", { since: null });                                     ok(r.status === 200, "neue Sitzung gilt");
+  r = await A("/api/sync", { since: null });                                     ok(r.status === 401, "alte Sitzungen abgemeldet");
+  r = await X("/api/auth?action=reset", { token, password: "nochmal12345" });    ok(r.status === 400, "Link nur einmal gültig");
+  r = await A("/api/auth?action=login", { email, password: "zurueckgesetzt1" }); ok(r.status === 200, "Anmeldung mit neuem Passwort");
+  await X("/api/auth?action=reset-request", { email }); await X("/api/auth?action=reset-request", { email });
+  r = await X("/api/auth?action=reset-request", { email });                      ok(r.status === 429, "höchstens 3 Links je Stunde");
+  await A("/api/auth?action=password", { old: "zurueckgesetzt1", password: "neuesPasswort1" });
+  mails.close();
+} else console.log("--   Rücksetzen per Mail nicht geprüft (SMTP_TEST_PORT fehlt)");
 r = await A("/api/auth?action=delete", { password: "neuesPasswort1" }); ok(r.status === 200, "Konto gelöscht");
 r = await B("/api/sync", { since: null });                      ok(r.status === 401, "Sitzungen des gelöschten Kontos ungültig");
 await X("/api/auth?action=delete", { password: "anderes-passwort" });

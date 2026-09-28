@@ -75,6 +75,13 @@ function ensureSchema() {
         email text NOT NULL,
         at timestamptz NOT NULL DEFAULT now()
       );
+      CREATE TABLE IF NOT EXISTS maisdoc.pw_reset (
+        token_hash text PRIMARY KEY,
+        user_id uuid NOT NULL REFERENCES maisdoc.users(id) ON DELETE CASCADE,
+        created timestamptz NOT NULL DEFAULT now(),
+        expires timestamptz NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS pw_reset_user ON maisdoc.pw_reset (user_id, created);
       CREATE INDEX IF NOT EXISTS lieferungen_upd ON maisdoc.lieferungen (user_id, updated_at);
       CREATE INDEX IF NOT EXISTS felder_upd ON maisdoc.felder (user_id, updated_at);
       CREATE INDEX IF NOT EXISTS login_fail_email ON maisdoc.login_fail (email, at);
@@ -100,7 +107,7 @@ export function checkPassword(pw, stored) {
 /* ---------- Sitzungen (Cookie, HttpOnly) ---------- */
 const COOKIE = "md_sess";
 const SESSION_DAYS = 180;
-const sha = (t) => crypto.createHash("sha256").update(t).digest("hex");
+export const sha = (t) => crypto.createHash("sha256").update(t).digest("hex");
 
 export async function createSession(res, userId) {
   const token = crypto.randomBytes(32).toString("base64url");
