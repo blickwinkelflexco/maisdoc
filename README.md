@@ -65,6 +65,8 @@ Vercel → Projekt `maisdoc` → Settings → Environment Variables (Production)
 
 Microsoft 365: im Admin Center beim Benutzer info@blickwinkel.pro → E-Mail → „E-Mail-Apps verwalten“ →
 **Authentifiziertes SMTP** einschalten. Mit Zwei-Faktor-Anmeldung ein App-Kennwort verwenden.
+Achtung: Microsoft stellt die Anmeldung mit Passwort für SMTP schrittweise ab. Lehnt der Server sie ab,
+Resend nehmen (kostenlos bis 3.000 Mails im Monat; die Domain wird über DNS-Einträge beim Webmaster bestätigt).
 `APP_URL` (Adresse im Link) steht ohne Angabe auf `https://maisdoc.blickwinkel.pro`.
 Nach dem Einrichten den Versanddienst in `datenschutz.html` unter „Wer die Daten für uns verarbeitet“ ergänzen.
 Test lokal: `SMTP_HOST=127.0.0.1 SMTP_PORT=2526 MAIL_FROM=x@y.at npm run dev` und `SMTP_TEST_PORT=2526 npm test`.
