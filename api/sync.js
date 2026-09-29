@@ -35,6 +35,8 @@ export default handle(async (req, res) => {
   const u = await requireUser(req);
   const body = await readBody(req);
   const t0 = (await q("SELECT now() AS t")).rows[0].t;
+  // für die Statistik „aktive Konten“ (höchstens einmal je Stunde geschrieben)
+  await q("UPDATE maisdoc.users SET zuletzt = now() WHERE id = $1 AND (zuletzt IS NULL OR zuletzt < now() - interval '1 hour')", [u.id]);
 
   for (const key of Object.keys(TABLES)) {
     const items = (Array.isArray(body[key]) ? body[key] : []).slice(0, MAX_ITEMS).map(clean).filter(Boolean);

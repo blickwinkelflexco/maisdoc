@@ -120,6 +120,18 @@ r = await A("/api/auth?action=delete", { password: "neuesPasswort1" }); ok(r.sta
 r = await B("/api/sync", { since: null });                      ok(r.status === 401, "Sitzungen des gelöschten Kontos ungültig");
 await X("/api/auth?action=delete", { password: "anderes-passwort" });
 
+// Zähler und Statistik
+r = await X("/api/zaehler", { art: "start" });                  ok(r.status === 200, "Zähler zählt");
+r = await X("/api/zaehler", { art: "irgendwas" });              ok(r.status === 400, "Zähler nimmt nur bekannte Ereignisse");
+r = await X("/api/stats");                                      ok(r.status === 404, "Statistik ohne Schlüssel gesperrt");
+if (process.env.STATS_TOKEN) {
+  const res = await fetch(BASE + "/api/stats", { headers: { Authorization: "Bearer " + process.env.STATS_TOKEN } });
+  const st = await res.json();
+  ok(res.status === 200 && st.zaehler.summe.start >= 1 && typeof st.konten.gesamt === "number" && !JSON.stringify(st).includes("@"), "Statistik mit Schlüssel: Summen, keine E-Mail-Adressen");
+  const bad = await fetch(BASE + "/api/stats", { headers: { Authorization: "Bearer falsch" } });
+  ok(bad.status === 404, "falscher Schlüssel abgelehnt");
+}
+
 // Sperre nach Fehlversuchen
 for (let i = 0; i < 8; i++) await X("/api/auth?action=login", { email: "sperre@example.at", password: "xxxxxxxx" });
 r = await X("/api/auth?action=login", { email: "sperre@example.at", password: "xxxxxxxx" }); ok(r.status === 429, "Sperre nach 8 Fehlversuchen");

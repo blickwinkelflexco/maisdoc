@@ -874,9 +874,10 @@ async function runOcr() {
     updateResult();
     for (const k of OCR_KEYS) { const el = $(k); if (el) el.classList.toggle("fehlt", !el.value.trim()); }   // Fehlendes sichtbar machen
     ocrRing(gelesen / 8 * 100, `${gelesen}/8`, gelesen === 8 ? "ok" : "warn");
+    zaehle(gelesen === 8 ? "ocr_voll" : "ocr");
     st.textContent = gelesen === 8 ? "Alle 8 Werte gelesen. Bitte kurz mit dem Schein vergleichen." : `${gelesen} von 8 Werten gelesen. Orange markierte bitte ergänzen.`;
   } catch (e) {
-    if (run === ocrRun) { ocrRing(0, "–", "warn"); st.textContent = "Werte konnten nicht gelesen werden. Bitte abtippen, das Foto wird gespeichert."; }
+    if (run === ocrRun) { zaehle("ocr"); ocrRing(0, "–", "warn"); st.textContent = "Werte konnten nicht gelesen werden. Bitte abtippen, das Foto wird gespeichert."; }
   } finally { if (run === ocrRun) btn.hidden = !state.foto; }
 }
 
@@ -911,6 +912,7 @@ async function saveForm(ev) {
   const i = state.lieferungen.findIndex((x) => x.id === rec.id);
   if (i >= 0) state.lieferungen[i] = rec; else state.lieferungen.push(rec);
   if (rec.feldId) safeLS("set", "letztesFeld", rec.feldId);
+  if (!prev) zaehle("fuhre");
   state.year = rec.jahr;
   scheduleSync();
   toast(prev ? "Fuhre geändert" : (c.tmHa != null ? `Gespeichert: ${fmt(c.tmHa / 1000, 2)} t/ha trocken` : "Gespeichert (ohne Hektar)"));
@@ -1171,6 +1173,12 @@ async function reloadState() {
   const felder = (await Store.all("felder")) || [];
   state.lieferungen = all.filter((r) => !r.geloescht);
   state.felder = felder.filter((f) => !f.geloescht);
+}
+
+// Anonymer Zähler (nur Anzahl je Tag, keine Kennung). Fehler egal, offline wird nichts nachgereicht.
+function zaehle(art) {
+  if (location.protocol === "file:") return;
+  try { fetch("/api/zaehler", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json", "X-MaisDoc": "1" }, body: JSON.stringify({ art }) }).catch(() => {}); } catch (e) {}
 }
 
 async function api(path, body, method) {
@@ -1586,6 +1594,7 @@ $("importFile").addEventListener("change", (e) => { const f = e.target.files && 
   if (t && ["erfassen", "verlauf", "felder"].includes(t)) switchTab(t);
   initAccount();
   checkResetLink();
+  zaehle("start");
 })();
 </script>
 </body>

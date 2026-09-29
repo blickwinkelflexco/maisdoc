@@ -81,6 +81,13 @@ function ensureSchema() {
         created timestamptz NOT NULL DEFAULT now(),
         expires timestamptz NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS maisdoc.zaehler (
+        tag date NOT NULL,
+        art text NOT NULL,
+        n integer NOT NULL DEFAULT 0,
+        PRIMARY KEY (tag, art)
+      );
+      ALTER TABLE maisdoc.users ADD COLUMN IF NOT EXISTS zuletzt timestamptz;
       CREATE INDEX IF NOT EXISTS pw_reset_user ON maisdoc.pw_reset (user_id, created);
       CREATE INDEX IF NOT EXISTS lieferungen_upd ON maisdoc.lieferungen (user_id, updated_at);
       CREATE INDEX IF NOT EXISTS felder_upd ON maisdoc.felder (user_id, updated_at);

@@ -21,6 +21,7 @@ Erste unterstützte Trocknung: Wiegescheine der Trocknung Reding (Format des Bei
 | Offline | `sw.js`, `manifest.webmanifest`, Icons | installierbar, läuft an der Waage auch ohne Netz |
 | Konto | `api/auth.js` | registrieren, anmelden, abmelden, Passwort ändern und vergessen, Konto löschen |
 | E-Mail | `api/_mail.js` | Versand über SMTP (Link zum Passwort-Rücksetzen) |
+| Statistik | `api/zaehler.js`, `api/stats.js`, `statistik.html` | anonymer Zähler je Tag, Summen für BLICKWINKEL |
 | Abgleich | `api/sync.js` | Fuhren, Felder, Einstellungen zwischen Geräten |
 | Fotos | `api/foto.js` | Wiegeschein-Fotos hoch- und herunterladen (nur eigene) |
 | Gemeinsam | `api/_lib.js` | Datenbank, Tabellen (legt sie selbst an), Passwörter, Sitzungen |
@@ -82,6 +83,18 @@ Vercel → Projekt `maisdoc` → **Storage** → **Neon (Postgres)** anlegen und
 verbinden, **Region Frankfurt (aws-eu-central-1)**. Das setzt `DATABASE_URL`. Danach einmal neu veröffentlichen (Deployments →
 Redeploy). Die Tabellen legt die App beim ersten Aufruf selbst an. Solange die
 Datenbank fehlt, ist der Konto-Knopf ausgeblendet und die App läuft nur im Gerät.
+
+## Nutzungsstatistik
+
+- **Zähler** (`api/zaehler.js`): die App meldet je Ereignis nur die Art, der Server zählt je Tag
+  (Tabelle `zaehler`). Ereignisse: `start` (App geöffnet), `ocr_voll` (Foto, alle 8 Werte gelesen),
+  `ocr` (Foto, nicht alles gelesen), `fuhre` (neue Fuhre gespeichert). Keine IP, kein Cookie, keine
+  Kennung; zählt auch Nutzung ohne Konto. Offline-Aufrufe gehen nicht mit. Zähler seit 29.09.2026.
+- **Konten**: `users.zuletzt` wird beim Abgleich gesetzt (höchstens stündlich) → „aktiv in 7/30 Tagen“.
+- **Ansehen**: https://maisdoc.blickwinkel.pro/statistik.html mit dem Zugangsschlüssel `STATS_TOKEN`
+  (Vercel → Environment Variables, Production). Der Schlüssel steht nicht im Repo. Die Seite merkt
+  ihn sich im Browser; `api/stats.js` liefert nur Summen, keine E-Mail-Adressen oder Inhalte.
+  Ohne `STATS_TOKEN` antwortet `/api/stats` mit 404.
 
 ## Rechnung
 

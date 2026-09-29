@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Statistik · MaisDoc</title>
+<link rel="stylesheet" href="legal.css">
+<link rel="icon" href="icon-192.png">
+<style>
+.kacheln{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin:14px 0}
+.k{border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.k b{display:block;font:700 26px/1.1 "Montserrat",system-ui,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+.k span{font-size:13px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{font:600 12px "Montserrat",system-ui,sans-serif;color:var(--muted)}
+.wrap{overflow-x:auto}
+form{display:flex;gap:8px;margin:14px 0}
+input{flex:1;min-width:0;font:16px "Roboto",system-ui,sans-serif;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--ink)}
+button{font:600 14px "Montserrat",system-ui,sans-serif;padding:9px 14px;border-radius:6px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer}
+.err{color:#b3261e}
+form[hidden]{display:none}
+</style>
+</head>
+<body>
+<main>
+<a class="back" href="./">← zurück zu MaisDoc</a>
+<h1>Nutzung</h1>
+<p class="stand" id="stand">Nur für BLICKWINKEL.</p>
+<form id="f"><input id="t" type="password" autocomplete="current-password" placeholder="Zugangsschlüssel" aria-label="Zugangsschlüssel"><button>Anzeigen</button></form>
+<p class="err" id="err" hidden></p>
+<div id="out"></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const ls = (k, v) => { try { return v === undefined ? localStorage.getItem(k) : (v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v)); } catch (e) { return null; } };
+const n = (x) => Number(x || 0).toLocaleString("de-AT");
+const d = (iso) => iso ? new Date(iso).toLocaleString("de-AT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "–";
+const tagText = (t) => new Date(t + "T12:00:00").toLocaleDateString("de-AT", { weekday: "short", day: "2-digit", month: "2-digit" });
+
+async function laden(token) {
+  $("err").hidden = true;
+  const r = await fetch("/api/stats", { headers: { Authorization: "Bearer " + token } }).catch(() => null);
+  if (!r || !r.ok) { $("err").textContent = r && r.status === 404 ? "Schlüssel stimmt nicht." : "Keine Verbindung."; $("err").hidden = false; if (r && r.status === 404) ls("md_stats", null); return; }
+  const s = await r.json();
+  ls("md_stats", token); $("f").hidden = true;
+  $("stand").textContent = "Stand " + d(s.stand) + " · Zähler seit 29.09.2026";
+  const z = s.zaehler.summe;
+  const kachel = (wert, text) => `<div class="k"><b>${wert}</b><span>${text}</span></div>`;
+  // Tage zusammenführen: Zählerereignisse + neue Konten
+  const tage = {};
+  for (const r of s.zaehler.tage) (tage[r.tag] ||= {})[r.art] = r.n;
+  for (const r of s.neueKonten) (tage[r.tag] ||= {}).konten = r.n;
+  const zeilen = Object.keys(tage).sort().reverse().map((t) => { const x = tage[t];
+    return `<tr><td>${tagText(t)}</td><td>${n(x.start)}</td><td>${n((x.ocr || 0) + (x.ocr_voll || 0))}</td><td>${n(x.ocr_voll)}</td><td>${n(x.fuhre)}</td><td>${n(x.konten)}</td></tr>`; }).join("");
+  $("out").innerHTML = `
+    <h2>Konten</h2>
+    <div class="kacheln">${kachel(n(s.konten.gesamt), "Konten gesamt")}${kachel(n(s.konten.aktiv7), "aktiv, letzte 7 Tage")}${kachel(n(s.konten.aktiv30), "aktiv, letzte 30 Tage")}${kachel(n(s.fuhren.konten), "Konten mit Fuhren")}</div>
+    <p class="stand">Neuestes Konto: ${d(s.konten.neuestes)}</p>
+    <h2>Daten in Konten</h2>
+    <div class="kacheln">${kachel(n(s.fuhren.gesamt), "Fuhren")}${kachel(n(s.felder.gesamt), "Felder")}${kachel(n(s.fotos.gesamt), "Wiegeschein-Fotos")}${kachel(n(s.fotos.mb) + " MB", "Fotos Speicher")}</div>
+    <p class="stand">Letzte Fuhre geändert: ${d(s.fuhren.zuletzt)}</p>
+    <h2>Nutzung gesamt (auch ohne Konto)</h2>
+    <div class="kacheln">${kachel(n(z.start), "App geöffnet")}${kachel(n((z.ocr || 0) + (z.ocr_voll || 0)), "Wiegescheine fotografiert")}${kachel(n(z.ocr_voll), "davon alle 8 Werte gelesen")}${kachel(n(z.fuhre), "Fuhren erfasst")}</div>
+    <h2>Je Tag</h2>
+    ${zeilen ? `<div class="wrap"><table><thead><tr><th>Tag</th><th>geöffnet</th><th>Fotos</th><th>alle 8</th><th>Fuhren</th><th>neue Konten</th></tr></thead><tbody>${zeilen}</tbody></table></div>` : `<p>Noch keine Zahlen.</p>`}
+    <p class="stand">Gezählt wird ohne Cookie und ohne Kennung: jedes Öffnen zählt einzeln, auch mehrmals vom selben Handy.</p>
+    <p><a href="#" id="aus">Schlüssel auf diesem Gerät vergessen</a></p>`;
+  $("aus").onclick = (e) => { e.preventDefault(); ls("md_stats", null); location.reload(); };
+}
+$("f").onsubmit = (e) => { e.preventDefault(); const t = $("t").value.trim(); if (t) laden(t); };
+const t = ls("md_stats"); if (t) laden(t);
+</script>
+</body>
+</html>
