@@ -91,6 +91,8 @@ h3{font:600 16px/1.25 var(--f-head);margin:0;letter-spacing:.02em}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .note{font-size:13px;color:var(--ink-soft)}
 .banner{border:1px solid var(--warn);color:var(--warn);background:var(--surface);border-radius:8px;padding:10px 12px;font-size:14px}
+.banner.hinweis{border-color:var(--line);color:var(--ink);display:flex;gap:10px;align-items:center;justify-content:space-between}
+.banner.hinweis button{flex:none}
 
 /* Buttons */
 button,.btn{font:600 15px/1 var(--f-head);border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:11px 14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px}
@@ -302,6 +304,7 @@ details.block[open] summary{margin-bottom:8px}
     </button>
   </header>
 
+  <div class="banner hinweis" id="hinweisBanner" hidden><span id="hinweisText"></span><button type="button" class="btn-sm" id="hinweisBtn"></button></div>
   <div class="banner" id="storageBanner" hidden>Dieser Browser speichert keine Daten dauerhaft (privates Fenster oder Speicher gesperrt). Erfasste Fuhren gehen beim Schließen verloren. Bitte vorher unter „Felder“ sichern.</div>
 
   <!-- ======================= ERFASSEN ======================= -->
@@ -1303,6 +1306,7 @@ async function loadRemoteFoto(id) {
 
 async function afterLogin(user) {
   Acct.user = user;
+  $("hinweisBanner").hidden = true;
   await Store.put("meta", user, "user");
   const prevUser = await Store.get("meta", "syncUser");
   if (prevUser !== user.id) {
@@ -1348,8 +1352,27 @@ async function initAccount() {
     if (e.noApi) { Acct.available = false; setAcct("local"); }   // z. B. Vorschau ohne Server
     else setAcct(cached ? "offline" : "local");
   }
+  zeigeHinweis();
   window.addEventListener("online", () => scheduleSync(200));
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") scheduleSync(200); });
+}
+
+// Hinweise: alte Adresse, und installierte App ohne Anmeldung. Auf dem iPhone hat die App am
+// Home-Bildschirm einen eigenen Speicher – Anmeldung und Daten aus dem Browser sind dort nicht da.
+function zeigeHinweis() {
+  const b = $("hinweisBanner"), txt = $("hinweisText"), btn = $("hinweisBtn");
+  b.hidden = true;
+  if (/\.vercel\.app$/.test(location.hostname)) {
+    txt.textContent = "MaisDoc hat eine neue Adresse. Ohne Konto bleiben deine Fuhren hier – leg vorher ein Konto an, dann sind sie dort auch.";
+    btn.textContent = "Zur neuen Adresse"; btn.onclick = () => { location.href = "https://maisdoc.blickwinkel.pro/"; };
+    b.hidden = false; return;
+  }
+  const installiert = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  if (installiert && Acct.available && !Acct.user && !state.lieferungen.length) {
+    txt.textContent = "Schon ein Konto? Einmal hier anmelden, dann sind deine Fuhren da.";
+    btn.textContent = "Anmelden"; btn.onclick = () => openAccount("login");
+    b.hidden = false;
+  }
 }
 
 /* ---------- Konto-Dialog ---------- */
@@ -1388,7 +1411,7 @@ function openAccount(mode, token) {
     $("dlgBody").innerHTML = `
       <div class="row" style="justify-content:space-between"><h2>Passwort vergessen</h2><button type="button" class="btn-sm btn-ghost" data-act="close">Schließen</button></div>
       ${Acct.mail ? `<form id="forgotForm" class="stack" novalidate>
-        <label class="f">E-Mail deines Kontos<input id="fEmail" type="email" autocomplete="email" inputmode="email" required></label>
+        <label class="f">E-Mail deines Kontos<input id="fEmail" type="email" autocomplete="username" inputmode="email" required></label>
         <div class="err" id="fErr" hidden></div>
         <button type="submit" class="btn-primary">Link senden</button>
       </form>` : `<p class="note" id="fInfo">Schreib von der E-Mail-Adresse deines Kontos an info@blickwinkel.pro, wir setzen es zurück.</p>`}
@@ -1421,8 +1444,8 @@ function openAccount(mode, token) {
       </div>
       <form id="acctForm" class="stack" novalidate>
         ${mode === "reg" ? `<label class="f">Name <span class="u">optional</span><input id="aName" autocomplete="name"></label>` : ""}
-        <label class="f">E-Mail<input id="aEmail" type="email" autocomplete="email" inputmode="email" required></label>
-        <label class="f">Passwort ${mode === "reg" ? `<span class="u">mindestens 8 Zeichen</span>` : ""}<input id="aPw" type="password" autocomplete="${mode === "reg" ? "new-password" : "current-password"}" required></label>
+        <label class="f">E-Mail<input id="aEmail" name="username" type="email" autocomplete="username" inputmode="email" required></label>
+        <label class="f">Passwort ${mode === "reg" ? `<span class="u">mindestens 8 Zeichen</span>` : ""}<input id="aPw" name="password" type="password" autocomplete="${mode === "reg" ? "new-password" : "current-password"}" required></label>
         <div class="err" id="aErr" hidden></div>
         <button type="submit" class="btn-primary">${mode === "reg" ? "Konto anlegen" : "Anmelden"}</button>
       </form>
@@ -1585,6 +1608,7 @@ $("importFile").addEventListener("change", (e) => { const f = e.target.files && 
     if (s) Object.assign(state.settings, s);
   } catch (e) { /* leerer Start */ }
   if (Store.isVolatile) $("storageBanner").hidden = false;
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}   // Browser soll Daten nicht räumen
   applySettingsToForm();
   renderAll();
   resetForm();
